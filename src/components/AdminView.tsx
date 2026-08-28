@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Users, 
@@ -29,7 +29,10 @@ import {
   Link2,
   RefreshCw,
   RotateCcw,
-  Phone
+  Phone,
+  Table as TableIcon,
+  Package,
+  Truck
 } from 'lucide-react';
 import { 
   initialLocations, 
@@ -41,6 +44,11 @@ import {
 } from '../data/seedData';
 import { LocationItem, TechnicianItem, AiLogEntry, AssetRecord, SupplierItem, InventoryItem } from '../types';
 import { useSystemSettings } from '../context/SystemSettingsContext';
+import { AdminLocationsManager } from './admin/AdminLocationsManager';
+import { AdminTechsManager } from './admin/AdminTechsManager';
+import { AdminAssetsManager } from './admin/AdminAssetsManager';
+import { AdminGoogleIntegrations } from './admin/AdminGoogleIntegrations';
+import { AdminDynamicTableEditor } from './admin/AdminDynamicTableEditor';
 
 interface AdminViewProps {
   lang: 'ar' | 'en';
@@ -58,114 +66,150 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
   } = useSystemSettings();
 
   const [activeTab, setActiveTab] = useState<
-    'locations' | 'techs' | 'assets_db' | 'suppliers_db' | 'google_integrations' | 'ui_controls' | 'settings' | 'export' | 'ailogs'
-  >('ui_controls');
+    'dynamic_grid' | 'locations' | 'techs' | 'assets_db' | 'google_integrations' | 'ui_controls' | 'settings' | 'export' | 'ailogs'
+  >('dynamic_grid');
 
-  // Database Collections State (Managed locally with seed data + export/CRUD capabilities)
-  const [locations, setLocations] = useState<LocationItem[]>(initialLocations);
-  const [technicians, setTechnicians] = useState<TechnicianItem[]>(initialTechnicians);
-  const [assets, setAssets] = useState<AssetRecord[]>(initialAssets);
-  const [suppliers, setSuppliers] = useState<SupplierItem[]>(initialSuppliers);
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+  // Database Collections State with LocalStorage Persistence
+  const [locations, setLocations] = useState<LocationItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_locations_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved locations', e);
+    }
+    return initialLocations;
+  });
+
+  const [technicians, setTechnicians] = useState<TechnicianItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_technicians_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved technicians', e);
+    }
+    return initialTechnicians;
+  });
+
+  const [assets, setAssets] = useState<AssetRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_assets_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved assets', e);
+    }
+    return initialAssets;
+  });
+
+  const [suppliers, setSuppliers] = useState<SupplierItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_suppliers_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved suppliers', e);
+    }
+    return initialSuppliers;
+  });
+
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_inventory_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved inventory', e);
+    }
+    return initialInventory;
+  });
+
   const [aiLogs, setAiLogs] = useState<AiLogEntry[]>(initialAiLogs);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  // New Item Modals State (CRUD)
-  const [newLocationModal, setNewLocationModal] = useState(false);
-  const [newLocationForm, setNewLocationForm] = useState({
-    id: `LOC-${locations.length + 1}`,
-    name: '',
-    type: 'فرع',
-    region: 'القاهرة',
-    lat: 30.0444,
-    lng: 31.2357,
-    address: ''
-  });
+  const handleUpdateLocations = (newLocs: LocationItem[]) => {
+    setLocations(newLocs);
+    try {
+      localStorage.setItem('cmms_locations_db', JSON.stringify(newLocs));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
 
-  const [newTechModal, setNewTechModal] = useState(false);
-  const [newTechForm, setNewTechForm] = useState({
-    id: `TECH-${technicians.length + 1}`,
-    name: '',
-    phone: '',
-    specialty: 'تبريد وتكييف',
-    active: true
-  });
+  const handleUpdateTechnicians = (newTechs: TechnicianItem[]) => {
+    setTechnicians(newTechs);
+    try {
+      localStorage.setItem('cmms_technicians_db', JSON.stringify(newTechs));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleUpdateAssets = (newAssets: AssetRecord[]) => {
+    setAssets(newAssets);
+    try {
+      localStorage.setItem('cmms_assets_db', JSON.stringify(newAssets));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleUpdateSuppliers = (newSupps: SupplierItem[]) => {
+    setSuppliers(newSupps);
+    try {
+      localStorage.setItem('cmms_suppliers_db', JSON.stringify(newSupps));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleUpdateInventory = (newInv: InventoryItem[]) => {
+    setInventory(newInv);
+    try {
+      localStorage.setItem('cmms_inventory_db', JSON.stringify(newInv));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
 
   const handleTriggerSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    try {
+      localStorage.setItem('cmms_locations_db', JSON.stringify(locations));
+      localStorage.setItem('cmms_technicians_db', JSON.stringify(technicians));
+      localStorage.setItem('cmms_assets_db', JSON.stringify(assets));
+      localStorage.setItem('cmms_suppliers_db', JSON.stringify(suppliers));
+      localStorage.setItem('cmms_inventory_db', JSON.stringify(inventory));
+    } catch (err) {
+      console.error(err);
+    }
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
 
   const handleResetSettings = () => {
-    if (window.confirm(isAr ? 'هل تريد استعادة جميع إعدادات النظام والواجهة إلى القيم الافتراضية المصنعية؟' : 'Reset all settings to default values?')) {
+    if (window.confirm(isAr ? 'هل تريد استعادة جميع إعدادات النظام والواجهة وقواعد البيانات إلى القيم الافتراضية؟' : 'Reset all settings and database tables to default values?')) {
       resetToDefaults();
+      setLocations(initialLocations);
+      setTechnicians(initialTechnicians);
+      setAssets(initialAssets);
+      setSuppliers(initialSuppliers);
+      setInventory(initialInventory);
+      localStorage.removeItem('cmms_locations_db');
+      localStorage.removeItem('cmms_technicians_db');
+      localStorage.removeItem('cmms_assets_db');
+      localStorage.removeItem('cmms_suppliers_db');
+      localStorage.removeItem('cmms_inventory_db');
       setResetSuccess(true);
       setTimeout(() => setResetSuccess(false), 2500);
-    }
-  };
-
-  const handleAddLocation = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newLocationForm.name) return;
-    const item: LocationItem = {
-      id: newLocationForm.id,
-      name: newLocationForm.name,
-      type: newLocationForm.type as any,
-      region: newLocationForm.region,
-      lat: Number(newLocationForm.lat),
-      lng: Number(newLocationForm.lng),
-      address: newLocationForm.address,
-      org: 'Sidera Confectionery (سيدرا)',
-      active: true
-    };
-    setLocations([item, ...locations]);
-    setNewLocationModal(false);
-    setNewLocationForm({
-      id: `LOC-${locations.length + 2}`,
-      name: '',
-      type: 'فرع',
-      region: 'القاهرة',
-      lat: 30.0444,
-      lng: 31.2357,
-      address: ''
-    });
-  };
-
-  const handleDeleteLocation = (id: string) => {
-    if (confirm(isAr ? 'هل أنت متأكد من حذف هذا الموقع من قاعدة البيانات؟' : 'Delete this location?')) {
-      setLocations(locations.filter(l => l.id !== id));
-    }
-  };
-
-  const handleAddTech = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTechForm.name) return;
-    const item: TechnicianItem = {
-      id: newTechForm.id,
-      name: newTechForm.name,
-      phone: newTechForm.phone,
-      specialty: newTechForm.specialty,
-      location: 'المركز الرئيسي',
-      color: '#0d9488',
-      active: newTechForm.active
-    };
-    setTechnicians([item, ...technicians]);
-    setNewTechModal(false);
-    setNewTechForm({
-      id: `TECH-${technicians.length + 2}`,
-      name: '',
-      phone: '',
-      specialty: 'تبريد وتكييف',
-      active: true
-    });
-  };
-
-  const handleDeleteTech = (id: string) => {
-    if (confirm(isAr ? 'هل أنت متأكد من حذف هذا الفني؟' : 'Delete technician?')) {
-      setTechnicians(technicians.filter(t => t.id !== id));
     }
   };
 
@@ -250,6 +294,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       {/* Sub Navigation Tabs */}
       <div className="flex border-b border-slate-200 space-x-1 space-x-reverse text-xs sm:text-sm font-bold overflow-x-auto pb-1">
         <button
+          onClick={() => setActiveTab('dynamic_grid')}
+          className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'dynamic_grid'
+              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <TableIcon className="w-4 h-4 text-teal-700" />
+          <span>{isAr ? '⚡ محرر الجداول الديناميكي (Live Grid)' : 'Live Data Grid'}</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('ui_controls')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'ui_controls'
@@ -282,7 +338,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           }`}
         >
           <Building2 className="w-4 h-4" />
-          <span>{isAr ? `🏢 المواقع والفروع (${locations.length})` : 'Locations'}</span>
+          <span>{isAr ? `🏢 المواقع (${locations.length})` : 'Locations'}</span>
         </button>
 
         <button
@@ -345,6 +401,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           <span>{isAr ? '🤖 سجلات Gemini AI' : 'AI Logs'}</span>
         </button>
       </div>
+
+      {/* ==================================================================== */}
+      {/* TAB: LIVE DYNAMIC DATA GRID EDITOR */}
+      {/* ==================================================================== */}
+      {activeTab === 'dynamic_grid' && (
+        <AdminDynamicTableEditor
+          isAr={isAr}
+          locations={locations}
+          technicians={technicians}
+          assets={assets}
+          suppliers={suppliers}
+          inventory={inventory}
+          onUpdateLocations={handleUpdateLocations}
+          onUpdateTechnicians={handleUpdateTechnicians}
+          onUpdateAssets={handleUpdateAssets}
+          onUpdateSuppliers={handleUpdateSuppliers}
+          onUpdateInventory={handleUpdateInventory}
+        />
+      )}
 
       {/* ==================================================================== */}
       {/* TAB 0: UI & FEATURE MASTER CONTROLS */}
@@ -676,467 +751,47 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 1: GOOGLE INTEGRATIONS & CLOUD ENDPOINTS */}
+      {/* TAB 1: GOOGLE INTEGRATIONS & CLOUD ENDPOINTS (NO-CODE) */}
       {/* ==================================================================== */}
       {activeTab === 'google_integrations' && (
-        <section className="space-y-5 animate-in fade-in duration-150">
-          <div className="bg-white border-geometric rounded-xs p-5 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div>
-                <h3 className="font-black text-sm text-slate-900">
-                  {isAr ? '🔗 مركز ربط وإدارة خدمات Google Workspace & Cloud API' : 'Google Ecosystem Integration Hub'}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  إدارة عناوين الـ Endpoints والـ Webhook وقواعد بيانات Google Sheets و Google Maps دون الحاجة لكتابة كود.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleTriggerSave()}
-                className="px-4 py-2 accent-teal text-white text-xs font-bold rounded-xs flex items-center gap-1.5 shadow-xs"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isAr ? 'حفظ وتحديث نقاط الربط' : 'Save Integrations'}</span>
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              
-              {/* 1. Google Sheets Master Database ID */}
-              <div className="p-4 bg-slate-50 border-geometric rounded-xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-                    <span className="font-bold text-slate-900">قاعدة بيانات Google Sheets الرئيسية (Database Spreadsheet ID):</span>
-                  </div>
-                  <a 
-                    href={settings.integrations.spreadsheetUrl} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="text-teal-700 hover:underline flex items-center gap-1 font-bold text-[11px]"
-                  >
-                    <span>فتح الشيت مباشرة في نافذة جديدة</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-                <input 
-                  type="text" 
-                  value={settings.integrations.spreadsheetId}
-                  onChange={e => updateIntegrations({ 
-                    spreadsheetId: e.target.value,
-                    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${e.target.value}/edit`
-                  })}
-                  className="w-full px-3 py-2 border-geometric rounded-xs bg-white font-mono text-slate-800"
-                />
-                <p className="text-[11px] text-slate-500">
-                  يتضمن 7 أوراق رئيسية: (WoHeaders, Visits, Locations, Technicians, Inventory, Custodies, AI_Log).
-                </p>
-              </div>
-
-              {/* 2. Google Apps Script Web App Endpoint */}
-              <div className="p-4 bg-slate-50 border-geometric rounded-xs space-y-2">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-indigo-700" />
-                  <span className="font-bold text-slate-900">رابط تطبيق Google Apps Script Web App (Webhook Endpoint):</span>
-                </div>
-                <input 
-                  type="url" 
-                  value={settings.integrations.appsScriptWebappUrl}
-                  onChange={e => updateIntegrations({ appsScriptWebappUrl: e.target.value })}
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  className="w-full px-3 py-2 border-geometric rounded-xs bg-white font-mono text-slate-800"
-                />
-                <p className="text-[11px] text-slate-500">
-                  نقطة النهاية REST API المستلمة للبلاغات، وتوليد إشعارات التكليف، ومزامنة أوامر الشغل ثنائية الاتجاه.
-                </p>
-              </div>
-
-              {/* 3. Google Gemini Model Configuration */}
-              <div className="p-4 bg-slate-50 border-geometric rounded-xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-teal-600" />
-                    <span className="font-bold text-slate-900">نموذج الذكاء الاصطناعي (Gemini Vision AI Model):</span>
-                  </div>
-                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-xs">
-                    {settings.integrations.geminiApiKeyStatus}
-                  </span>
-                </div>
-                <select
-                  value={settings.integrations.geminiModel}
-                  onChange={e => updateIntegrations({ geminiModel: e.target.value })}
-                  className="w-full px-3 py-2 border-geometric rounded-xs bg-white font-mono font-bold"
-                >
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (فائق السرعة واقتصادي - الافتراضي والموصى به)</option>
-                  <option value="gemini-3-flash">gemini-3-flash (أحدث جيل فلاش)</option>
-                  <option value="gemini-2.5-pro">gemini-2.5-pro (استدلال متعمق للأعطال الهيدروليكية المعقدة)</option>
-                </select>
-              </div>
-
-              {/* 4. Google Maps Platform & Drive Vault */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                <div className="p-3.5 bg-slate-50 border-geometric rounded-xs space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                    <MapPin className="w-4 h-4 text-rose-600" />
-                    <span>مفتاح خرائط Google Maps Platform API:</span>
-                  </div>
-                  <input 
-                    type="text" 
-                    value={settings.integrations.googleMapsApiKey}
-                    onChange={e => updateIntegrations({ googleMapsApiKey: e.target.value })}
-                    className="w-full px-3 py-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-
-                <div className="p-3.5 bg-slate-50 border-geometric rounded-xs space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                    <Database className="w-4 h-4 text-teal-700" />
-                    <span>معرف مجلد وسائط Google Drive Vault:</span>
-                  </div>
-                  <input 
-                    type="text" 
-                    value={settings.integrations.googleDriveFolderId}
-                    onChange={e => updateIntegrations({ googleDriveFolderId: e.target.value })}
-                    className="w-full px-3 py-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
+        <AdminGoogleIntegrations 
+          isAr={isAr} 
+          onSaveTriggered={() => handleTriggerSave()} 
+        />
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 2: LOCATIONS DATABASE */}
+      {/* TAB 2: LOCATIONS DATABASE (DYNAMIC CRUD) */}
       {/* ==================================================================== */}
       {activeTab === 'locations' && (
-        <section className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-base text-slate-900">سجل المواقع والفروع والمصانع (Locations DB)</h3>
-              <p className="text-xs text-slate-500">إدارة {locations.length} موقعاً معتمداً مع الإحداثيات الجغرافية الكاملة</p>
-            </div>
-            <button 
-              onClick={() => setNewLocationModal(true)}
-              className="px-3.5 py-1.5 accent-teal text-white rounded-xs text-xs font-bold transition shadow-xs flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>إضافة موقع / فرع جديد</span>
-            </button>
-          </div>
-
-          {/* Add Location Modal */}
-          {newLocationModal && (
-            <div className="bg-slate-50 border-2 border-teal-600 p-4 rounded-xs space-y-3 animate-in fade-in">
-              <h4 className="font-black text-xs text-slate-900">إدخال موقع أو فرع جديد لقاعدة البيانات:</h4>
-              <form onSubmit={handleAddLocation} className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">كود الموقع:</label>
-                  <input 
-                    type="text" 
-                    value={newLocationForm.id} 
-                    onChange={e => setNewLocationForm({ ...newLocationForm, id: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">اسم الموقع:</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="مثال: فرع الزمالك - حسن صبري" 
-                    value={newLocationForm.name} 
-                    onChange={e => setNewLocationForm({ ...newLocationForm, name: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">نوع الموقع:</label>
-                  <select 
-                    value={newLocationForm.type} 
-                    onChange={e => setNewLocationForm({ ...newLocationForm, type: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white"
-                  >
-                    <option value="فرع">فرع بيع وتوزيع</option>
-                    <option value="مصنع">مصنع مركزي</option>
-                    <option value="مستودع">مستودع إقليمي</option>
-                    <option value="مبنى إداري">مبنى إداري</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">المنطقة:</label>
-                  <input 
-                    type="text" 
-                    value={newLocationForm.region} 
-                    onChange={e => setNewLocationForm({ ...newLocationForm, region: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">خط العرض (Lat):</label>
-                  <input 
-                    type="number" 
-                    step="0.0001" 
-                    value={newLocationForm.lat} 
-                    onChange={e => setNewLocationForm({ ...newLocationForm, lat: Number(e.target.value) })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">خط الطول (Lng):</label>
-                  <input 
-                    type="number" 
-                    step="0.0001" 
-                    value={newLocationForm.lng} 
-                    onChange={e => setNewLocationForm({ ...newLocationForm, lng: Number(e.target.value) })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-                <div className="sm:col-span-3 flex justify-end gap-2 pt-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setNewLocationModal(false)} 
-                    className="px-3 py-1.5 border-geometric text-slate-700 rounded-xs text-xs font-bold"
-                  >
-                    إلغاء
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="px-4 py-1.5 accent-teal text-white rounded-xs text-xs font-bold"
-                  >
-                    حفظ الموقع
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          <div className="bg-white border-geometric rounded-xs shadow-xs overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3">الكود</th>
-                  <th className="px-4 py-3">اسم الموقع</th>
-                  <th className="px-4 py-3">النوع</th>
-                  <th className="px-4 py-3">المنطقة</th>
-                  <th className="px-4 py-3">الإحداثيات الجغرافية</th>
-                  <th className="px-4 py-3">العنوان بالتفصيل</th>
-                  <th className="px-4 py-3 text-center">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
-                {locations.map(loc => (
-                  <tr key={loc.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-mono font-bold text-slate-900">{loc.id}</td>
-                    <td className="px-4 py-2.5 font-bold text-slate-900">{loc.name}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300">
-                        {loc.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">{loc.region}</td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-slate-600">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</td>
-                    <td className="px-4 py-2.5 text-slate-600 max-w-[220px] truncate" title={loc.address}>{loc.address}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <button 
-                        onClick={() => handleDeleteLocation(loc.id)}
-                        className="text-slate-400 hover:text-rose-600 transition p-1"
-                        title="حذف الموقع"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <AdminLocationsManager
+          locations={locations}
+          onUpdateLocations={handleUpdateLocations}
+          isAr={isAr}
+        />
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 3: TECHNICIANS DATABASE */}
+      {/* TAB 3: TECHNICIANS DATABASE (DYNAMIC CRUD & WHATSAPP) */}
       {/* ==================================================================== */}
       {activeTab === 'techs' && (
-        <section className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-base text-slate-900">سجل الفنيين والمهندسين (Technicians DB)</h3>
-              <p className="text-xs text-slate-500">إدارة فريق الصيانة الميدانية والتخصصات الهندسية</p>
-            </div>
-            <button 
-              onClick={() => setNewTechModal(true)}
-              className="px-3.5 py-1.5 accent-teal text-white rounded-xs text-xs font-bold transition shadow-xs flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>إضافة فني جديد</span>
-            </button>
-          </div>
-
-          {/* Add Tech Modal */}
-          {newTechModal && (
-            <div className="bg-slate-50 border-2 border-teal-600 p-4 rounded-xs space-y-3 animate-in fade-in">
-              <h4 className="font-black text-xs text-slate-900">إضافة فني جديد لفريق الصيانة:</h4>
-              <form onSubmit={handleAddTech} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">كود الفني:</label>
-                  <input 
-                    type="text" 
-                    value={newTechForm.id} 
-                    onChange={e => setNewTechForm({ ...newTechForm, id: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">اسم الفني:</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="مثال: م. ياسر الديب" 
-                    value={newTechForm.name} 
-                    onChange={e => setNewTechForm({ ...newTechForm, name: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">رقم الهاتف:</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="010..." 
-                    value={newTechForm.phone} 
-                    onChange={e => setNewTechForm({ ...newTechForm, phone: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">التخصص:</label>
-                  <select 
-                    value={newTechForm.specialty} 
-                    onChange={e => setNewTechForm({ ...newTechForm, specialty: e.target.value })} 
-                    className="w-full p-2 border-geometric rounded-xs bg-white font-bold"
-                  >
-                    <option value="تبريد وتكييف">تبريد وتكييف</option>
-                    <option value="كهرباء ولوحات">كهرباء ولوحات تحكم</option>
-                    <option value="أفران ومخابز">أفران ومخابز</option>
-                    <option value="بسترة ومجنسات">بسترة ومجنسات ألبان</option>
-                    <option value="غلايات وبخار">غلايات وبخار</option>
-                  </select>
-                </div>
-                <div className="sm:col-span-4 flex justify-end gap-2 pt-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setNewTechModal(false)} 
-                    className="px-3 py-1.5 border-geometric text-slate-700 rounded-xs text-xs font-bold"
-                  >
-                    إلغاء
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="px-4 py-1.5 accent-teal text-white rounded-xs text-xs font-bold"
-                  >
-                    حفظ الفني
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          <div className="bg-white border-geometric rounded-xs shadow-xs overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3">الكود</th>
-                  <th className="px-4 py-3">اسم الفني</th>
-                  <th className="px-4 py-3">رقم الهاتف</th>
-                  <th className="px-4 py-3">التخصص الرئيسي</th>
-                  <th className="px-4 py-3">الحالة الميدانية</th>
-                  <th className="px-4 py-3 text-center">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
-                {technicians.map(t => (
-                  <tr key={t.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-mono font-bold text-slate-900">{t.id}</td>
-                    <td className="px-4 py-2.5 font-bold text-slate-900">{t.name}</td>
-                    <td className="px-4 py-2.5 font-mono text-slate-700">{t.phone}</td>
-                    <td className="px-4 py-2.5 text-slate-800 font-medium">{t.specialty}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        متاح ونشط
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <button 
-                        onClick={() => handleDeleteTech(t.id)}
-                        className="text-slate-400 hover:text-rose-600 transition p-1"
-                        title="حذف الفني"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <AdminTechsManager
+          technicians={technicians}
+          onUpdateTechnicians={handleUpdateTechnicians}
+          isAr={isAr}
+        />
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 4: ASSETS & MACHINES DATABASE */}
+      {/* TAB 4: ASSETS & MACHINES DATABASE (DYNAMIC CRUD & QR CODES) */}
       {/* ==================================================================== */}
       {activeTab === 'assets_db' && (
-        <section className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-base text-slate-900">سجل المعدات والماكينات (Assets Master DB)</h3>
-              <p className="text-xs text-slate-500">إدارة {assets.length} ماكينة وخط إنتاج مسجل بأكواد QR Code</p>
-            </div>
-            <button 
-              onClick={() => alert('إضافة ماكينة جديدة')}
-              className="px-3.5 py-1.5 accent-teal text-white rounded-xs text-xs font-bold transition shadow-xs flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>إضافة ماكينة جديدة</span>
-            </button>
-          </div>
-
-          <div className="bg-white border-geometric rounded-xs shadow-xs overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3">الكود</th>
-                  <th className="px-4 py-3">اسم الماكينة / المعدة</th>
-                  <th className="px-4 py-3">الموقع / الفرع</th>
-                  <th className="px-4 py-3">التصنيف</th>
-                  <th className="px-4 py-3">الموديل والشركة</th>
-                  <th className="px-4 py-3">الحالة التشغيلية</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
-                {assets.map(a => (
-                  <tr key={a.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-mono font-bold text-slate-900">{a.id}</td>
-                    <td className="px-4 py-2.5 font-bold text-slate-900">{a.name}</td>
-                    <td className="px-4 py-2.5 text-slate-700">{a.location_name || a.location_id}</td>
-                    <td className="px-4 py-2.5 text-slate-800">{a.category}</td>
-                    <td className="px-4 py-2.5 font-mono text-slate-600">{a.model || a.manufacturer || 'قياسي'}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-xs text-[10px] font-bold border ${
-                        a.status.includes('تعمل') ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'
-                      }`}>
-                        {a.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <AdminAssetsManager
+          assets={assets}
+          locations={locations}
+          onUpdateAssets={handleUpdateAssets}
+          isAr={isAr}
+        />
       )}
 
       {/* ==================================================================== */}

@@ -9,11 +9,12 @@ import {
   Building2, 
   Package, 
   AlertCircle,
-  PhoneCall
+  PhoneCall,
+  HardDrive
 } from 'lucide-react';
 import { useSystemSettings } from '../context/SystemSettingsContext';
 
-export type AppTab = 'dashboard' | 'report' | 'visit' | 'assets_risks' | 'suppliers' | 'inventory' | 'admin' | 'gas_hub';
+export type AppTab = 'dashboard' | 'report' | 'visit' | 'assets_risks' | 'suppliers' | 'inventory' | 'workspace' | 'admin' | 'gas_hub';
 
 interface NavbarProps {
   activeTab: AppTab;
@@ -31,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, lang, s
     { id: 'report', labelAr: 'إبلاغ عن عطل', labelEn: 'Report Defect', icon: <AlertCircle className="w-3.5 h-3.5 text-rose-500" /> },
     { id: 'visit', labelAr: 'نموذج الفني', labelEn: 'Tech Visit', icon: <Smartphone className="w-3.5 h-3.5" /> },
     { id: 'assets_risks', labelAr: 'الماكينات والمخاطر', labelEn: 'Assets & Risks', icon: <Cpu className="w-3.5 h-3.5" /> },
+    { id: 'workspace', labelAr: 'Google Workspace', labelEn: 'Google Workspace', icon: <HardDrive className="w-3.5 h-3.5 text-amber-500" /> },
     { id: 'suppliers', labelAr: 'دليل الموردين (53)', labelEn: 'Suppliers (53)', icon: <Building2 className="w-3.5 h-3.5" /> },
     { id: 'inventory', labelAr: 'المخزون والعهد', labelEn: 'Inventory & ERP', icon: <Package className="w-3.5 h-3.5" /> },
     { id: 'admin', labelAr: 'الإدارة والإعدادات', labelEn: 'Admin', icon: <Settings className="w-3.5 h-3.5" /> },
@@ -94,6 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, lang, s
                   {item.id === 'dashboard' ? (isAr ? 'الرئيسية' : 'Dash') :
                    item.id === 'visit' ? (isAr ? 'الفني' : 'Visit') :
                    item.id === 'assets_risks' ? (isAr ? 'الماكينات' : 'Assets') :
+                   item.id === 'workspace' ? (isAr ? 'Workspace' : 'Workspace') :
                    item.id === 'suppliers' ? (isAr ? 'الموردين' : 'Suppliers') :
                    item.id === 'inventory' ? (isAr ? 'المخزون' : 'Stock') :
                    item.id === 'admin' ? (isAr ? 'الإدارة' : 'Admin') :

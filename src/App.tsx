@@ -8,6 +8,7 @@ import { SuppliersView } from './components/SuppliersView';
 import { InventoryGovernanceView } from './components/InventoryGovernanceView';
 import { AdminView } from './components/AdminView';
 import { GasExportModal } from './components/GasExportModal';
+import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
 import { initialWorkOrders } from './data/seedData';
 import { WorkOrder } from './types';
 import { SystemSettingsProvider, useSystemSettings } from './context/SystemSettingsContext';
@@ -116,6 +117,17 @@ function MainAppContent() {
         {activeTab === 'inventory' && (
           <InventoryGovernanceView 
             lang={lang} 
+          />
+        )}
+
+        {activeTab === 'workspace' && (
+          <GoogleWorkspaceHub 
+            lang={lang}
+            workOrdersList={workOrders}
+            onWorkOrdersUpdated={(wos) => {
+              setWorkOrders(wos);
+              localStorage.setItem('cmms_work_orders', JSON.stringify(wos));
+            }}
           />
         )}
 
