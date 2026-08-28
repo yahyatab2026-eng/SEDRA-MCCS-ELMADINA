@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .grid-overlay {
+    background-size: 20px 20px;
+    background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+    opacity: 0.25;
+  }
+  .border-geometric {
+    border: 1.5px solid #0f172a;
+  }
+  .border-geometric-sm {
+    border: 1px solid #0f172a;
+  }
+  .accent-teal {
+    background-color: #0f766e;
+  }
+  .urgent-pulse {
+    border-right: 4px solid #be123c !important;
+  }
+  .urgent-pulse-ltr {
+    border-left: 4px solid #be123c !important;
+  }
+}
+
+/* Custom crisp scrollbar for table and panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #0f172a;
+}

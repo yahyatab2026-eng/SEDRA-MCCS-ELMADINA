@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>لوحة تحكم الصيانة | شركة سيدره (CMMS)</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS (OpenStreetMap - 100% Free) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- Chart.js CDN (Pinned 4.4.1) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      font-family: 'Cairo', sans-serif;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .custom-marker-pin {
+      width: 32px;
+      height: 32px;
+      border-radius: 50% 50% 50% 0;
+      position: absolute;
+      transform: rotate(-45deg);
+      left: 50%;
+      top: 50%;
+      margin: -20px 0 0 -20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    .custom-marker-pin::after {
+      content: '';
+      width: 14px;
+      height: 14px;
+      margin: 8px 0 0 8px;
+      background: #fff;
+      position: absolute;
+      border-radius: 50%;
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3 space-x-reverse">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-xl text-white shadow-inner">
+            س
+          </div>
+          <div>
+            <div class="font-bold text-lg leading-tight" id="headerOrgName">شركة سيدره</div>
+            <div class="text-xs text-slate-400">نظام إدارة الصيانة والتشغيل (CMMS)</div>
+          </div>
+        </div>
+
+        <!-- Navigation Links & Controls -->
+        <div class="flex items-center space-x-2 sm:space-x-4 space-x-reverse">
+          <a href="?page=dashboard" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white border border-slate-700">
+            لوحة التحكم
+          </a>
+          <a href="?page=visit" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition">
+            نموذج الفني 📱
+          </a>
+          <a href="?page=admin" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition">
+            الإدارة ⚙️
+          </a>
+
+          <!-- Language Toggle -->
+          <button id="langToggleBtn" onclick="toggleLanguage()" class="px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            English
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI CARDS GRID (8 Metrics) -->
+    <section>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4" id="kpiContainer">
+        
+        <!-- 1. Weekly WOs -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_weekly">بلاغات الأسبوع</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-slate-900" id="kpiWeekly">--</span>
+            <span class="text-xs text-emerald-600 font-medium">جديد</span>
+          </div>
+        </div>
+
+        <!-- 2. Open Now -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_open">مفتوحة الآن</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-amber-600" id="kpiOpen">--</span>
+            <span class="text-xs text-amber-600 font-medium">نشط</span>
+          </div>
+        </div>
+
+        <!-- 3. Overdue SLA -->
+        <div class="bg-white p-3.5 rounded-xl border border-rose-200 bg-rose-50/40 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-rose-700" data-i18n="kpi_overdue">متأخرة عن SLA</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-rose-600" id="kpiOverdue">--</span>
+            <span class="text-xs text-rose-600 font-bold">⚠️ عاجل</span>
+          </div>
+        </div>
+
+        <!-- 4. Completion Rate 30d -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_completion">نسبة الإنجاز (30 يوم)</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-emerald-600" id="kpiCompletion">--%</span>
+            <span class="text-xs text-slate-400">شهري</span>
+          </div>
+        </div>
+
+        <!-- 5. MTTR (Hours) -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" title="Mean Time to Repair" data-i18n="kpi_mttr">MTTR (ساعات)</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-blue-600" id="kpiMttr">--</span>
+            <span class="text-xs text-slate-400">ساعة/عطل</span>
+          </div>
+        </div>
+
+        <!-- 6. MTBF (Days) -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" title="Mean Time Between Failures" data-i18n="kpi_mtbf">MTBF (أيام)</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-indigo-600" id="kpiMtbf">--</span>
+            <span class="text-xs text-slate-400">يوم بين الأعطال</span>
+          </div>
+        </div>
+
+        <!-- 7. Month Cost -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_cost">تكلفة الشهر</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-xl font-black text-slate-900" id="kpiCost">--</span>
+            <span class="text-[10px] text-slate-400">ج.م</span>
+          </div>
+        </div>
+
+        <!-- 8. Active Techs -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_techs">فنيون نشطون</span>
+          <div class="flex items-baseline justify-between mt-2">
+            <span class="text-2xl font-black text-slate-900" id="kpiTechs">--</span>
+            <span class="text-xs text-slate-400">فني بالميدان</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MAP & AI INSIGHTS SPLIT SECTION -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Leaflet Cairo Interactive Map (2 Columns) -->
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <!-- Map Header with Controls -->
+        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+          <div class="flex items-center space-x-2 space-x-reverse">
+            <span class="text-base font-bold text-slate-900" data-i18n="map_title">خريطة المواقع والبلاغات الميدانية (القاهرة الكبرى)</span>
+            <span class="px-2 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-medium" id="mapSiteCount">40 موقع</span>
+          </div>
+
+          <!-- Map Layer Filter Toggles -->
+          <div class="flex items-center space-x-2 space-x-reverse text-xs">
+            <label class="inline-flex items-center cursor-pointer bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-xs">
+              <input type="checkbox" id="toggleSitesLayer" checked onchange="updateMapLayers()" class="rounded text-emerald-600 focus:ring-0 ml-1.5">
+              <span>المواقع (40)</span>
+            </label>
+            <label class="inline-flex items-center cursor-pointer bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-xs">
+              <input type="checkbox" id="toggleWosLayer" checked onchange="updateMapLayers()" class="rounded text-rose-600 focus:ring-0 ml-1.5">
+              <span>البلاغات النشطة</span>
+            </label>
+            <button onclick="resetCairoMap()" class="px-2.5 py-1 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium transition" title="إعادة تركيز الخريطة">
+              🎯 القاهرة
+            </button>
+          </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="cairoMap" class="w-full h-[380px] z-0"></div>
+      </div>
+
+      <!-- AI Insights & Executive Digest Panel (1 Column) -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl shadow-md p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+            <div class="flex items-center space-x-2 space-x-reverse">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg">
+                ✨
+              </div>
+              <h3 class="font-bold text-base text-white" data-i18n="ai_insights_title">التحليل الذكي (Gemini AI)</h3>
+            </div>
+            <button onclick="fetchAiWeeklyDigest()" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg transition flex items-center space-x-1 space-x-reverse">
+              <span id="aiRefreshSpinner" class="hidden">⏳</span>
+              <span>تحديث التقرير</span>
+            </button>
+          </div>
+
+          <!-- AI Digest Content -->
+          <div id="aiDigestContainer" class="text-xs text-slate-300 space-y-3 leading-relaxed max-h-[300px] overflow-y-auto pr-1">
+            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
+              <div class="font-bold text-indigo-300 mb-1 flex items-center">
+                <span class="ml-1">🔍</span> مؤشر الأعطال المتكررة
+              </div>
+              <p>تتركز 42% من البلاغات هذا الأسبوع في أجهزة التبريد ومحركات الكوندنسر بمنافذ بيع شرق القاهرة بسبب درجات الحرارة المرتفعة.</p>
+            </div>
+
+            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
+              <div class="font-bold text-emerald-300 mb-1 flex items-center">
+                <span class="ml-1">💡</span> توصية وقائية استباقية
+              </div>
+              <p>يوصى بجدولة حملة صيانة وقائية وتنظيف مكثفات غرف التبريد بمصنع العاشر من رمضان ومستودع قليوب لتفادي توقف خطوط الإنتاج.</p>
+            </div>
+
+            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
+              <div class="font-bold text-amber-300 mb-1 flex items-center">
+                <span class="ml-1">⏱️</span> تقييم سرعة الاستجابة (SLA)
+              </div>
+              <p>بلغ التزام الفريق الفني بالموعد المحدد 93% للأعطال العاجلة، بمتوسط زمن إنجاز 3.8 ساعات.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 mt-3 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>النموذج: <strong class="text-slate-300">Gemini 2.5 Flash</strong></span>
+          <span class="text-emerald-400 flex items-center"><span class="w-2 h-2 rounded-full bg-emerald-400 ml-1"></span> متصل</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- CHARTS SECTION (Chart.js via CDN) -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      
+      <!-- Chart 1: WOs per Location (Top 10) -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h4 class="font-bold text-sm text-slate-800 mb-3" data-i18n="chart_locations">أعلى المواقع تسجيلاً للبلاغات</h4>
+        <div class="h-60 relative">
+          <canvas id="locationsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: WOs per Category (Doughnut) -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h4 class="font-bold text-sm text-slate-800 mb-3" data-i18n="chart_categories">توزيع الأعطال حسب التخصص</h4>
+        <div class="h-60 relative">
+          <canvas id="categoriesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 3: 30-Day Trend (Line) -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h4 class="font-bold text-sm text-slate-800 mb-3" data-i18n="chart_trend">معدل البلاغات والإنجاز (30 يوم)</h4>
+        <div class="h-60 relative">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- WORK ORDERS TABLE & MANAGEMENT -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      
+      <!-- Table Filter Bar -->
+      <div class="p-5 border-b border-slate-100 bg-slate-50/50 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="font-bold text-base text-slate-900 flex items-center space-x-2 space-x-reverse">
+            <span>سجل بلاغات وأوامر الصيانة (Work Orders)</span>
+            <span id="woTotalBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-800">--</span>
+          </h3>
+
+          <div class="flex items-center space-x-2 space-x-reverse">
+            <button onclick="refreshWorkOrders()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center space-x-1 space-x-reverse">
+              <span>🔄 تحديث البيانات</span>
+            </button>
+            <a href="?page=visit" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
+              + تسجيل زيارة جديدة
+            </a>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+          <!-- Search Input -->
+          <div>
+            <input type="text" id="filterSearch" placeholder="بحث بالرقم أو الموقع أو الوصف..." oninput="debounceFilter()" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+          </div>
+
+          <!-- Status Filter -->
+          <div>
+            <select id="filterStatus" onchange="applyFilters()" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="">جميع الحالات</option>
+              <option value="مُبلَّغ عنه">مُبلَّغ عنه</option>
+              <option value="مُحدَّد">مُحدَّد</option>
+              <option value="قيد التنفيذ">قيد التنفيذ</option>
+              <option value="مُنجز">مُنجز</option>
+              <option value="مُغلق">مُغلق</option>
+            </select>
+          </div>
+
+          <!-- Severity Filter -->
+          <div>
+            <select id="filterSeverity" onchange="applyFilters()" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="">جميع درجات الخطورة</option>
+              <option value="عاجل">عاجل (SLA: 4 ساعات)</option>
+              <option value="متوسط">متوسط</option>
+              <option value="منخفض">منخفض</option>
+            </select>
+          </div>
+
+          <!-- Location Filter -->
+          <div>
+            <select id="filterLocation" onchange="applyFilters()" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="">جميع المواقع والمصانع</option>
+            </select>
+          </div>
+
+          <!-- Technician Filter -->
+          <div>
+            <select id="filterTech" onchange="applyFilters()" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="">جميع الفنيين</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsive Work Orders Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3">رقم البلاغ</th>
+              <th class="px-4 py-3">الموقع / الفرع</th>
+              <th class="px-4 py-3">التصنيف</th>
+              <th class="px-4 py-3">الخطورة</th>
+              <th class="px-4 py-3">الحالة</th>
+              <th class="px-4 py-3">الفني المكلف</th>
+              <th class="px-4 py-3">الموعد الأقصى (SLA)</th>
+              <th class="px-4 py-3">تشخيص Gemini</th>
+              <th class="px-4 py-3 text-center">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="woTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Populated via JavaScript -->
+            <tr>
+              <td colspan="9" class="text-center py-8 text-slate-400">جاري تحميل البلاغات من Google Sheets...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Pagination Footer -->
+      <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
+        <span id="paginationInfo">عرض 1 إلى 25</span>
+        <div class="flex space-x-2 space-x-reverse">
+          <button id="btnPrevPage" onclick="prevPage()" disabled class="px-3 py-1.5 rounded border border-slate-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition">
+            السابق
+          </button>
+          <button id="btnNextPage" onclick="nextPage()" class="px-3 py-1.5 rounded border border-slate-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition">
+            التالي
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: WORK ORDER DETAILS & ACTION POPUP -->
+  <div id="woDetailModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div>
+          <div class="flex items-center space-x-3 space-x-reverse">
+            <h3 class="font-bold text-lg text-slate-900" id="modalWoId">WO-2026-000000</h3>
+            <span id="modalSeverityBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold">عاجل</span>
+            <span id="modalStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-medium">قيد التنفيذ</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1" id="modalLocationName">فرع مدينة نصر</p>
+        </div>
+        <button onclick="closeWoModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-sm font-bold transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-6 text-xs leading-relaxed flex-1">
+        
+        <!-- Reporter & Description -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between text-slate-500 border-b border-slate-200 pb-2">
+            <span>المُبلّغ: <strong class="text-slate-800" id="modalReporter">--</strong></span>
+            <span>تاريخ البلاغ: <strong class="text-slate-800" id="modalCreatedAt">--</strong></span>
+            <span>الموعد الأقصى: <strong class="text-rose-600" id="modalSlaDeadline">--</strong></span>
+          </div>
+          <div>
+            <span class="font-bold text-slate-700 block mb-1">تفاصيل العطل المُبلّغ عنه:</span>
+            <p class="text-slate-800 bg-white p-3 rounded-lg border border-slate-200" id="modalDescription">--</p>
+          </div>
+        </div>
+
+        <!-- Gemini AI Diagnosis Card -->
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2 space-x-reverse font-bold text-indigo-900 text-sm">
+              <span>✨</span>
+              <span>تشخيص الذكاء الاصطناعي (Google Gemini)</span>
+            </div>
+            <button onclick="rerunAiDiagnosis()" class="text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded font-medium transition">
+              إعادة التحليل الآلي ⚡
+            </button>
+          </div>
+
+          <div class="text-slate-800 space-y-2" id="modalGeminiContent">
+            <p id="modalGeminiRootCause">--</p>
+            <div class="bg-white p-3 rounded-lg border border-indigo-100">
+              <span class="font-bold text-indigo-950 block mb-1">خطوات العمل المقترحة:</span>
+              <ul id="modalGeminiActions" class="list-disc list-inside space-y-1 text-slate-700"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Before & After Photos Grid -->
+        <div>
+          <h4 class="font-bold text-slate-800 text-sm mb-3">توثيق الصور الميدانية (Google Drive)</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Before Photo -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center">
+              <span class="font-bold text-slate-700 block mb-2">صورة العطل (قبل الإصلاح)</span>
+              <div class="h-44 bg-slate-200 rounded-lg overflow-hidden flex items-center justify-center">
+                <img id="modalBeforePhoto" src="" alt="قبل الإصلاح" class="w-full h-full object-cover hidden">
+                <span id="modalNoBeforePhoto" class="text-slate-400">لا توجد صورة متوفرة</span>
+              </div>
+            </div>
+
+            <!-- After Photo -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center">
+              <span class="font-bold text-emerald-700 block mb-2">صورة بعد الإصلاح (الفني)</span>
+              <div class="h-44 bg-slate-200 rounded-lg overflow-hidden flex items-center justify-center">
+                <img id="modalAfterPhoto" src="" alt="بعد الإصلاح" class="w-full h-full object-cover hidden">
+                <span id="modalNoAfterPhoto" class="text-slate-400">لم يتم إرفاق صورة بعد الإصلاح</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Action & Assignment Controls -->
+        <div class="bg-slate-100 p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <!-- Assign Tech -->
+          <div class="flex-1 min-w-[200px]">
+            <label class="block font-bold text-slate-700 mb-1">تعيين الفني المسؤول:</label>
+            <div class="flex space-x-2 space-x-reverse">
+              <select id="modalAssignTechSelect" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">اختر الفني...</option>
+              </select>
+              <button onclick="saveTechAssignment()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg transition">
+                حفظ التعيين
+              </button>
+            </div>
+          </div>
+
+          <!-- Fast Status Buttons -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">تحديث الحالة:</label>
+            <div class="flex space-x-1.5 space-x-reverse">
+              <button onclick="updateWoStatus('قيد التنفيذ')" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition">
+                بدء التنفيذ
+              </button>
+              <button onclick="updateWoStatus('مُنجز')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition">
+                إنجاز
+              </button>
+              <button onclick="updateWoStatus('مُغلق')" class="px-3 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-lg transition">
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APP STATE & LOGIC SCRIPT -->
+  <script>
+    // State
+    let appData = {
+      locations: [],
+      technicians: [],
+      stats: {},
+      workOrders: [],
+      totalWos: 0,
+      pageStart: 0,
+      pageLimit: 25,
+      currentFilter: {},
+      activeModalWo: null
+    };
+
+    let mapInstance = null;
+    let sitesMarkerLayer = null;
+    let wosMarkerLayer = null;
+    let markerClusterGroup = null;
+
+    let chartInstances = {};
+    let currentLang = localStorage.getItem('cmms_lang') || 'ar';
+
+    // Initialize Dashboard
+    window.addEventListener('DOMContentLoaded', () => {
+      applyLanguage(currentLang);
+      initMap();
+      loadDashboardData();
+    });
+
+    // Language Toggle
+    function toggleLanguage() {
+      currentLang = currentLang === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('cmms_lang', currentLang);
+      applyLanguage(currentLang);
+    }
+
+    function applyLanguage(lang) {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.getElementById('langToggleBtn').textContent = lang === 'ar' ? 'English' : 'عربي';
+      
+      const translations = {
+        ar: {
+          kpi_weekly: 'بلاغات الأسبوع',
+          kpi_open: 'مفتوحة الآن',
+          kpi_overdue: 'متأخرة عن SLA',
+          kpi_completion: 'نسبة الإنجاز (30 يوم)',
+          kpi_mttr: 'MTTR (ساعات)',
+          kpi_mtbf: 'MTBF (أيام)',
+          kpi_cost: 'تكلفة الشهر',
+          kpi_techs: 'فنيون نشطون',
+          map_title: 'خريطة المواقع والبلاغات الميدانية (القاهرة الكبرى)',
+          ai_insights_title: 'التحليل الذكي (Gemini AI)',
+          chart_locations: 'أعلى المواقع تسجيلاً للبلاغات',
+          chart_categories: 'توزيع الأعطال حسب التخصص',
+          chart_trend: 'معدل البلاغات والإنجاز (30 يوم)'
+        },
+        en: {
+          kpi_weekly: 'Weekly WOs',
+          kpi_open: 'Open Now',
+          kpi_overdue: 'Overdue SLA',
+          kpi_completion: 'Completion (30d)',
+          kpi_mttr: 'MTTR (Hours)',
+          kpi_mtbf: 'MTBF (Days)',
+          kpi_cost: 'Month Cost',
+          kpi_techs: 'Active Techs',
+          map_title: 'Live Sites & Incident Map (Greater Cairo)',
+          ai_insights_title: 'AI Insights (Gemini)',
+          chart_locations: 'WOs per Location (Top 10)',
+          chart_categories: 'Breakdown by Category',
+          chart_trend: '30-Day Activity Trend'
+        }
+      };
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang] && translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+    }
+
+    // Load initial data from Google Apps Script server or Fallback API
+    function loadDashboardData() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(handleInitialData)
+          .withFailureHandler(err => console.error('Data load failed:', err))
+          .getInitialDashboardData();
+      } else {
+        // Fallback for standalone/preview
+        fetch('?action=stats')
+          .then(r => r.json())
+          .then(res => {
+            if (res.data) handleInitialData({ stats: res.data });
+          })
+          .catch(e => console.log('Mock/preview fallback mode'));
+      }
+    }
+
+    function handleInitialData(data) {
+      if (!data) return;
+      if (data.orgName) document.getElementById('headerOrgName').textContent = data.orgName;
+      if (data.locations) appData.locations = data.locations;
+      if (data.technicians) appData.technicians = data.technicians;
+      if (data.stats) appData.stats = data.stats;
+      if (data.initialWorkOrders) {
+        appData.workOrders = data.initialWorkOrders.data || [];
+        appData.totalWos = data.initialWorkOrders.total || 0;
+      }
+
+      populateFilterDropdowns();
+      renderKpiCards();
+      renderMapMarkers();
+      renderCharts();
+      renderWorkOrdersTable();
+    }
+
+    // Populate Location & Tech select filters
+    function populateFilterDropdowns() {
+      const locSelect = document.getElementById('filterLocation');
+      locSelect.innerHTML = '<option value="">جميع المواقع والمصانع</option>';
+      appData.locations.forEach(loc => {
+        const opt = document.createElement('option');
+        opt.value = loc.id;
+        opt.textContent = `${loc.name} (${loc.type})`;
+        locSelect.appendChild(opt);
+      });
+
+      const techSelect = document.getElementById('filterTech');
+      techSelect.innerHTML = '<option value="">جميع الفنيين</option>';
+      const modalTechSelect = document.getElementById('modalAssignTechSelect');
+      modalTechSelect.innerHTML = '<option value="">اختر الفني...</option>';
+
+      appData.technicians.forEach(tech => {
+        const opt1 = document.createElement('option');
+        opt1.value = tech.id;
+        opt1.textContent = `${tech.name} - ${tech.specialty}`;
+        techSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = `${tech.id} (${tech.name})`;
+        opt2.textContent = `${tech.name} (${tech.specialty})`;
+        modalTechSelect.appendChild(opt2);
+      });
+    }
+
+    // Render KPI Metrics
+    function renderKpiCards() {
+      const s = appData.stats;
+      if (!s) return;
+      document.getElementById('kpiWeekly').textContent = s.weeklyCount ?? 0;
+      document.getElementById('kpiOpen').textContent = s.openCount ?? 0;
+      document.getElementById('kpiOverdue').textContent = s.overdueCount ?? 0;
+      document.getElementById('kpiCompletion').textContent = `${s.completionRate30d ?? 0}%`;
+      document.getElementById('kpiMttr').textContent = s.mttrHours ?? 0;
+      document.getElementById('kpiMtbf').textContent = s.mtbfDays ?? 30;
+      document.getElementById('kpiCost').textContent = (s.monthCost ?? 0).toLocaleString();
+      document.getElementById('kpiTechs').textContent = s.activeTechs ?? 16;
+    }
+
+    // ========================================================================
+    // LEAFLET MAP INITIALIZATION (OpenStreetMap - Free)
+    // ========================================================================
+    function initMap() {
+      const mapEl = document.getElementById('cairoMap');
+      if (!mapEl) return;
+
+      mapInstance = L.map('cairoMap', {
+        center: [30.0444, 31.2357], // Cairo center
+        zoom: 11,
+        zoomControl: true
+      });
+
+      // Free OpenStreetMap Raster Tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstance);
+
+      markerClusterGroup = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 40
+      });
+      mapInstance.addLayer(markerClusterGroup);
+
+      sitesMarkerLayer = L.layerGroup();
+      wosMarkerLayer = L.layerGroup();
+    }
+
+    function resetCairoMap() {
+      if (mapInstance) {
+        mapInstance.setView([30.0444, 31.2357], 11);
+      }
+    }
+
+    function renderMapMarkers() {
+      if (!mapInstance || !markerClusterGroup) return;
+      markerClusterGroup.clearLayers();
+      sitesMarkerLayer.clearLayers();
+      wosMarkerLayer.clearLayers();
+
+      const typeColors = {
+        'منفذ بيع': '#16a34a',
+        'مصنع': '#dc2626',
+        'مقر إداري': '#2563eb',
+        'مخزن': '#ea580c',
+        'أخرى': '#64748b'
+      };
+
+      // 1. Add Sites (40 locations)
+      appData.locations.forEach(loc => {
+        if (!loc.lat || !loc.lng) return;
+
+        const color = typeColors[loc.type] || '#16a34a';
+        const customIcon = L.divIcon({
+          className: 'custom-site-icon',
+          html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+
+        const marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
+        const popupContent = `
+          <div dir="rtl" style="font-family:'Cairo',sans-serif; min-width:180px;">
+            <div style="font-weight:bold; font-size:13px; color:#0f172a;">${loc.name}</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">النوع: <strong>${loc.type}</strong> | المنطقة: ${loc.region}</div>
+            <div style="font-size:11px; color:#475569; margin-top:4px;">${loc.address}</div>
+          </div>
+        `;
+        marker.bindPopup(popupContent);
+        sitesMarkerLayer.addLayer(marker);
+      });
+
+      // 2. Add Active Work Orders
+      appData.workOrders.forEach(wo => {
+        const loc = appData.locations.find(l => l.id === wo.location_id || l.name === wo.location_name);
+        if (!loc || !loc.lat || !loc.lng) return;
+
+        const isUrgent = wo.severity === 'عاجل';
+        const pinColor = isUrgent ? '#e11d48' : '#f59e0b';
+
+        const woIcon = L.divIcon({
+          className: 'custom-wo-icon',
+          html: `<div style="background-color:${pinColor}; color:#fff; font-weight:bold; font-size:10px; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.4);">${isUrgent ? '!' : 'W'}</div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        });
+
+        // Small offset to avoid exact stacking on the site marker
+        const offsetLat = loc.lat + 0.001;
+        const offsetLng = loc.lng + 0.001;
+
+        const marker = L.marker([offsetLat, offsetLng], { icon: woIcon });
+        const popupContent = `
+          <div dir="rtl" style="font-family:'Cairo',sans-serif; min-width:200px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:bold; color:#0f172a;">${wo.wo_id}</span>
+              <span style="background:${isUrgent ? '#fee2e2' : '#fef3c7'}; color:${isUrgent ? '#dc2626' : '#d97706'}; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:bold;">${wo.severity}</span>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:#334155; margin-top:4px;">${wo.location_name}</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">${wo.category} - ${wo.description?.substring(0, 45)}...</div>
+            <div style="margin-top:8px; text-align:center;">
+              <button onclick="openWoModal('${wo.wo_id}')" style="background:#2563eb; color:#fff; border:none; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:bold; width:100%;">عرض التفاصيل 🔍</button>
+            </div>
+          </div>
+        `;
+        marker.bindPopup(popupContent);
+        wosMarkerLayer.addLayer(marker);
+      });
+
+      updateMapLayers();
+    }
+
+    function updateMapLayers() {
+      if (!markerClusterGroup) return;
+      markerClusterGroup.clearLayers();
+      const showSites = document.getElementById('toggleSitesLayer')?.checked ?? true;
+      const showWos = document.getElementById('toggleWosLayer')?.checked ?? true;
+
+      if (showSites) markerClusterGroup.addLayer(sitesMarkerLayer);
+      if (showWos) markerClusterGroup.addLayer(wosMarkerLayer);
+    }
+
+    // ========================================================================
+    // CHART.JS GRAPHS (Pinned CDN 4.4.1)
+    // ========================================================================
+    function renderCharts() {
+      const s = appData.stats;
+      if (!s) return;
+
+      // 1. Top Locations Chart (Bar)
+      const locCtx = document.getElementById('locationsChart')?.getContext('2d');
+      if (locCtx) {
+        if (chartInstances.locations) chartInstances.locations.destroy();
+        const topLocs = Object.entries(s.locationCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        chartInstances.locations = new Chart(locCtx, {
+          type: 'bar',
+          data: {
+            labels: topLocs.map(i => i[0].replace('فرع ', '').substring(0, 18)),
+            datasets: [{
+              label: 'عدد البلاغات',
+              data: topLocs.map(i => i[1]),
+              backgroundColor: '#3b82f6',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+          }
+        });
+      }
+
+      // 2. Categories Doughnut Chart
+      const catCtx = document.getElementById('categoriesChart')?.getContext('2d');
+      if (catCtx) {
+        if (chartInstances.categories) chartInstances.categories.destroy();
+        const catEntries = Object.entries(s.categoryCounts || {});
+        chartInstances.categories = new Chart(catCtx, {
+          type: 'doughnut',
+          data: {
+            labels: catEntries.map(i => i[0]),
+            datasets: [{
+              data: catEntries.map(i => i[1]),
+              backgroundColor: ['#2563eb', '#dc2626', '#d97706', '#059669', '#7c3aed', '#0891b2', '#ea580c']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Cairo' } } } }
+          }
+        });
+      }
+
+      // 3. 30-Day Trend (Line)
+      const trendCtx = document.getElementById('trendChart')?.getContext('2d');
+      if (trendCtx) {
+        if (chartInstances.trend) chartInstances.trend.destroy();
+        const trendData = s.trend30d || [];
+        chartInstances.trend = new Chart(trendCtx, {
+          type: 'line',
+          data: {
+            labels: trendData.map(i => i.date),
+            datasets: [
+              {
+                label: 'بلاغات مسجلة',
+                data: trendData.map(i => i.created),
+                borderColor: '#e11d48',
+                backgroundColor: 'rgba(225, 29, 72, 0.1)',
+                tension: 0.3,
+                fill: true
+              },
+              {
+                label: 'أعطال تم إنجازها',
+                data: trendData.map(i => i.completed),
+                borderColor: '#16a34a',
+                backgroundColor: 'transparent',
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { font: { family: 'Cairo' } } } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+          }
+        });
+      }
+    }
+
+    // ========================================================================
+    // WORK ORDERS TABLE & PAGINATION
+    // ========================================================================
+    function renderWorkOrdersTable() {
+      const tbody = document.getElementById('woTableBody');
+      if (!tbody) return;
+
+      const list = appData.workOrders || [];
+      document.getElementById('woTotalBadge').textContent = `${appData.totalWos} بلاغ`;
+      document.getElementById('paginationInfo').textContent = `عرض ${appData.pageStart + 1} إلى ${Math.min(appData.pageStart + appData.pageLimit, appData.totalWos)} من ${appData.totalWos}`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">لا توجد بلاغات تطابق معايير البحث.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(wo => {
+        const isUrgent = wo.severity === 'عاجل';
+        const severityBadge = isUrgent 
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">عاجل (4 س)</span>`
+          : (wo.severity === 'منخفض' ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">منخفض</span>` : `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">متوسط</span>`);
+
+        const statusColors = {
+          'مُبلَّغ عنه': 'bg-slate-100 text-slate-700',
+          'مُحدَّد': 'bg-blue-100 text-blue-700',
+          'قيد التنفيذ': 'bg-amber-100 text-amber-700',
+          'مُنجز': 'bg-emerald-100 text-emerald-700',
+          'مُغلق': 'bg-slate-200 text-slate-800'
+        };
+        const statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[wo.status] || 'bg-slate-100'}">${wo.status}</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="openWoModal('${wo.wo_id}')">
+            <td class="px-4 py-3 font-bold text-slate-900">${wo.wo_id}</td>
+            <td class="px-4 py-3 font-medium text-slate-800">${wo.location_name}</td>
+            <td class="px-4 py-3 text-slate-600">${wo.category}</td>
+            <td class="px-4 py-3">${severityBadge}</td>
+            <td class="px-4 py-3">${statusBadge}</td>
+            <td class="px-4 py-3 text-slate-700">${wo.assigned_tech || '<span class="text-slate-400">غير محدد</span>'}</td>
+            <td class="px-4 py-3 font-mono text-[11px] ${isUrgent ? 'text-rose-600 font-bold' : 'text-slate-500'}">${wo.sla_deadline || '--'}</td>
+            <td class="px-4 py-3 text-slate-500 truncate max-w-[150px]">${wo.gemini_summary || 'قيد المعالجة'}</td>
+            <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
+              <button onclick="openWoModal('${wo.wo_id}')" class="px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 rounded transition">
+                عرض 🔍
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('btnPrevPage').disabled = appData.pageStart === 0;
+      document.getElementById('btnNextPage').disabled = (appData.pageStart + appData.pageLimit) >= appData.totalWos;
+    }
+
+    function prevPage() {
+      if (appData.pageStart >= appData.pageLimit) {
+        appData.pageStart -= appData.pageLimit;
+        fetchFilteredWorkOrders();
+      }
+    }
+
+    function nextPage() {
+      if ((appData.pageStart + appData.pageLimit) < appData.totalWos) {
+        appData.pageStart += appData.pageLimit;
+        fetchFilteredWorkOrders();
+      }
+    }
+
+    let searchTimer = null;
+    function debounceFilter() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => applyFilters(), 300);
+    }
+
+    function applyFilters() {
+      appData.pageStart = 0;
+      fetchFilteredWorkOrders();
+    }
+
+    function fetchFilteredWorkOrders() {
+      const filters = {
+        search: document.getElementById('filterSearch').value,
+        status: document.getElementById('filterStatus').value,
+        severity: document.getElementById('filterSeverity').value,
+        location: document.getElementById('filterLocation').value,
+        tech: document.getElementById('filterTech').value,
+        start: appData.pageStart,
+        limit: appData.pageLimit
+      };
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            appData.workOrders = res.data;
+            appData.totalWos = res.total;
+            renderWorkOrdersTable();
+          })
+          .getWorkOrders(filters);
+      }
+    }
+
+    function refreshWorkOrders() {
+      loadDashboardData();
+    }
+
+    // ========================================================================
+    // MODAL DETAIL & ACTIONS
+    // ========================================================================
+    function openWoModal(woId) {
+      const wo = appData.workOrders.find(w => w.wo_id === woId);
+      if (!wo) return;
+
+      appData.activeModalWo = wo;
+      document.getElementById('modalWoId').textContent = wo.wo_id;
+      document.getElementById('modalLocationName').textContent = `${wo.location_name} | ${wo.category}`;
+      document.getElementById('modalReporter').textContent = `${wo.reporter} (${wo.reporter_phone || 'لا يوجد هاتف'})`;
+      document.getElementById('modalCreatedAt').textContent = wo.created_at;
+      document.getElementById('modalSlaDeadline').textContent = wo.sla_deadline;
+      document.getElementById('modalDescription').textContent = wo.description;
+
+      // Badges
+      const sevEl = document.getElementById('modalSeverityBadge');
+      sevEl.textContent = wo.severity;
+      sevEl.className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${wo.severity === 'عاجل' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`;
+
+      const statEl = document.getElementById('modalStatusBadge');
+      statEl.textContent = wo.status;
+
+      // Gemini Card
+      document.getElementById('modalGeminiRootCause').textContent = wo.gemini_summary || 'جاري تحليل العطل بالذكاء الاصطناعي...';
+      const actionsList = document.getElementById('modalGeminiActions');
+      actionsList.innerHTML = '';
+      if (wo.gemini_json) {
+        try {
+          const parsed = typeof wo.gemini_json === 'string' ? JSON.parse(wo.gemini_json) : wo.gemini_json;
+          if (parsed.suggestedActions) {
+            parsed.suggestedActions.forEach(act => {
+              const li = document.createElement('li');
+              li.textContent = act;
+              actionsList.appendChild(li);
+            });
+          }
+        } catch (e) {}
+      }
+
+      // Photos
+      const beforeImg = document.getElementById('modalBeforePhoto');
+      const noBefore = document.getElementById('modalNoBeforePhoto');
+      if (wo.before_photo) {
+        beforeImg.src = wo.before_photo;
+        beforeImg.classList.remove('hidden');
+        noBefore.classList.add('hidden');
+      } else {
+        beforeImg.classList.add('hidden');
+        noBefore.classList.remove('hidden');
+      }
+
+      const afterImg = document.getElementById('modalAfterPhoto');
+      const noAfter = document.getElementById('modalNoAfterPhoto');
+      if (wo.after_photo) {
+        afterImg.src = wo.after_photo;
+        afterImg.classList.remove('hidden');
+        noAfter.classList.add('hidden');
+      } else {
+        afterImg.classList.add('hidden');
+        noAfter.classList.remove('hidden');
+      }
+
+      // Set tech select
+      document.getElementById('modalAssignTechSelect').value = wo.assigned_tech || '';
+
+      document.getElementById('woDetailModal').classList.remove('hidden');
+    }
+
+    function closeWoModal() {
+      document.getElementById('woDetailModal').classList.add('hidden');
+      appData.activeModalWo = null;
+    }
+
+    function saveTechAssignment() {
+      if (!appData.activeModalWo) return;
+      const techVal = document.getElementById('modalAssignTechSelect').value;
+      if (!techVal) return alert('الرجاء اختيار فني');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(() => {
+            alert('تم تعيين الفني بنجاح');
+            closeWoModal();
+            loadDashboardData();
+          })
+          .assignWorkOrder(appData.activeModalWo.wo_id, techVal);
+      }
+    }
+
+    function updateWoStatus(newStatus) {
+      if (!appData.activeModalWo) return;
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(() => {
+            alert(`تم تحديث حالة البلاغ إلى ${newStatus}`);
+            closeWoModal();
+            loadDashboardData();
+          })
+          .updateStatus(appData.activeModalWo.wo_id, newStatus);
+      }
+    }
+
+    function rerunAiDiagnosis() {
+      if (!appData.activeModalWo) return;
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            alert('تم إعادة التحليل بالذكاء الاصطناعي بنجاح');
+            openWoModal(appData.activeModalWo.wo_id);
+          })
+          .analyzeWorkOrderWithGemini(appData.activeModalWo.wo_id);
+      }
+    }
+
+    function fetchAiWeeklyDigest() {
+      document.getElementById('aiRefreshSpinner').classList.remove('hidden');
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            document.getElementById('aiRefreshSpinner').classList.add('hidden');
+            if (res.markdown) {
+              document.getElementById('aiDigestContainer').innerHTML = `<div class="bg-slate-800 p-4 rounded-xl text-slate-200 whitespace-pre-wrap">${res.markdown}</div>`;
+            }
+          })
+          .weeklyDigest();
+      }
+    }
+  </script>
+</body>
+</html>

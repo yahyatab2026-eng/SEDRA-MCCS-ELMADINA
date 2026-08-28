@@ -1,0 +1,6 @@
+{
+  "name": "Sidrah CMMS (نظام إدارة الصيانة - شركة سيدره)",
+  "description": "نظام إدارة الصيانة المحوسب الشامل لشركة سيدره على البنية التحتية المجانية لـ Google Apps Script و Google Sheets و Gemini AI",
+  "requestFramePermissions": ["geolocation", "camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

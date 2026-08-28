@@ -1,0 +1,291 @@
+import { InventoryItem, CustodyRecord } from '../types';
+
+export const COMPANY_INVENTORY: InventoryItem[] = [
+  {
+    id: 'INV-001',
+    name: 'بستم هواء لخط تعبئة اللبن الآلي LFB4D',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة (WH-002)',
+    category: 'ألبان وتعبئة وفرازات',
+    itemCode: '1004071',
+    balance: 1,
+    status: 'In Stock',
+    priority: 'Medium',
+    unit: 'قطعة',
+    notes: 'خاص بماكينة تعبئة الألبان'
+  },
+  {
+    id: 'INV-002',
+    name: 'جلبة كوبلن فراز لبن تركي',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'ألبان وتعبئة وفرازات',
+    itemCode: '1004098',
+    balance: 2,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'طقم',
+    notes: 'خاص بفرازات اللبن التركية'
+  },
+  {
+    id: 'INV-003',
+    name: 'كارتة بسترة آيس كريم إلكترونية',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'ألبان وتعبئة وفرازات',
+    itemCode: '1002323',
+    balance: 1,
+    status: 'In Stock',
+    priority: 'High',
+    unit: 'كارتة'
+  },
+  {
+    id: 'INV-004',
+    name: 'كارتات تصنيع آيس كريم',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'ألبان وتعبئة وفرازات',
+    itemCode: '1002340',
+    balance: 4,
+    status: 'In Stock',
+    priority: 'High',
+    unit: 'كارتة'
+  },
+  {
+    id: 'INV-005',
+    name: 'اسطوانة فريون R404A أصلية',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'تبريد وتكييف',
+    itemCode: '1002094',
+    balance: 1,
+    status: 'Low Stock',
+    priority: 'High',
+    unit: 'اسطوانة 10.9 كجم',
+    reorderLevel: 3
+  },
+  {
+    id: 'INV-006',
+    name: 'أعواد لحام فضة 40% (2.25 كجم)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'تبريد وتكييف',
+    itemCode: '1002121',
+    balance: 1,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'علبة (2.25 كجم)'
+  },
+  {
+    id: 'INV-007',
+    name: 'كارتة تكييف 5 حصان يونيون / كاريير',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'تبريد وتكييف',
+    itemCode: '1002776',
+    balance: 1,
+    status: 'In Stock',
+    priority: 'Medium',
+    unit: 'قطعة'
+  },
+  {
+    id: 'INV-008',
+    name: 'مراوح تبريد كوندنسر 12x12 سم (220V)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'تبريد وتكييف',
+    itemCode: '501065',
+    balance: 2,
+    status: 'Low Stock',
+    priority: 'High',
+    unit: 'قطعة',
+    reorderLevel: 6
+  },
+  {
+    id: 'INV-009',
+    name: 'كونتاكتورات، كابستورات، ريش مراوح، بلاور آيس كريم',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'تبريد وتكييف',
+    balance: 15,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'مجموعة أصناف'
+  },
+  {
+    id: 'INV-010',
+    name: 'دودة نافورة الشوكولاتة استانلس',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'شوكولاتة ونافورة',
+    itemCode: '1003036',
+    balance: 2,
+    status: 'In Stock',
+    priority: 'Medium',
+    unit: 'قطعة'
+  },
+  {
+    id: 'INV-011',
+    name: 'وصلة نافورة شوكولاتة',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'شوكولاتة ونافورة',
+    itemCode: '1002545',
+    balance: 4,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'قطعة'
+  },
+  {
+    id: 'INV-012',
+    name: 'حساس حراري لحلة الشوكولاتة (Thermocouple Probe)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'شوكولاتة ونافورة',
+    itemCode: '1003037',
+    balance: 1,
+    status: 'Low Stock',
+    priority: 'High',
+    unit: 'حساس'
+  },
+  {
+    id: 'INV-013',
+    name: 'خلايا وزن ميزان ديجيتال (Load Cells)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'موازين ديجيتال',
+    itemCode: '1001253',
+    balance: 8,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'خلية وزن'
+  },
+  {
+    id: 'INV-014',
+    name: 'كارتة ميزان، بطاريات 4V، مفاتيح باور، كابلات شحن',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'موازين ديجيتال',
+    balance: 12,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'طقم قطع غيار'
+  },
+  {
+    id: 'INV-015',
+    name: 'سكينة عمومي 125A، كابل 4*35 مم، محابس غاز، خلاطات مياه، فوم سبراي، أبواب ثلاجات أكريليك 107*57 سم',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — المدينة المنورة',
+    category: 'كهرباء ومرافق عامة',
+    balance: 20,
+    status: 'In Stock',
+    priority: 'Normal',
+    unit: 'أصناف متنوعة'
+  },
+
+  // CRITICAL SHORTAGES
+  {
+    id: 'INV-016',
+    name: 'زيت تبريد تخليقي SYNTH68 (ISO VG 68 Synthetic Oil)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — العبور',
+    category: 'تبريد وتكييف',
+    balance: 0,
+    status: 'Critical Shortage',
+    priority: 'High',
+    unit: 'جركن 5 لتر (مطلوب شراء 4 جراكن عاجلاً)',
+    reorderLevel: 4,
+    notes: 'مخصص لكباس GEA Bock لتشيلر مصنع الألبان AST-005. رصيده صفر ويسبب خطر تكسير الكباس!'
+  },
+  {
+    id: 'INV-017',
+    name: 'غاز تبريد فريون R22 أصلي',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — التجمع',
+    category: 'تبريد وتكييف',
+    balance: 0,
+    status: 'Critical Shortage',
+    priority: 'High',
+    unit: 'اسطوانة (مطلوب شراء 5 اسطوانات)',
+    reorderLevel: 5,
+    notes: 'مخصص لتكييفات كونسيلد الفروع ومصنع الغربي. رصيده صفر!'
+  },
+  {
+    id: 'INV-018',
+    name: 'ميكانيكال سيل طلمبات التشيلر والغواطس (Mechanical Seals)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — العبور',
+    category: 'طلمبات ومياه',
+    balance: 0,
+    status: 'Critical Shortage',
+    priority: 'High',
+    unit: 'طقم سيل (مطلوب شراء 6 أطقم)',
+    reorderLevel: 6,
+    notes: 'مطلوب لإصلاح طلمبات التشيلر AST-007 وطلمبات الصرف'
+  },
+  {
+    id: 'INV-019',
+    name: 'ملح وراتنج مزيل عسر مياه الغلاية (Water Softener Resin & Salt)',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'المخزن الرئيسي — العبور',
+    category: 'مرافق وغلايات',
+    balance: 0,
+    status: 'Critical Shortage',
+    priority: 'High',
+    unit: 'شيكارة ملح + لتر راتنج',
+    reorderLevel: 10,
+    notes: 'مطلوب لتشغيل محطة معالجة مياه الغلاية AST-008 ومنع تكلس مواسير اللهب'
+  }
+];
+
+export const COMPANY_CUSTODIES: CustodyRecord[] = [
+  {
+    id: 'CUSTODY-2026-001',
+    title: 'تصنيع عدد 3 قواعد خشبية كبيرة لتورت مصنع الغربي',
+    org: 'Sidera Confectionery (ORG-SID)',
+    location: 'مصنع الغربي — التجمع',
+    amount: 1500,
+    custodian: 'عمار + عماد محمود أحمد (كود 18057 - نجار)',
+    date: '2026-08-25',
+    status: 'In Progress',
+    purpose: 'عهدة نقدية لشراء خامات أخشاب وتصنيع قواعد التورت الكبيرة بالمصنع',
+    authorizedBy: 'المهندس يحيى طارق فرج'
+  },
+  {
+    id: 'CUSTODY-2026-002',
+    title: 'إعادة لف وتأهيل مواتير AC Brush Motors بورشة الوزيري بدلاً من الشراء الجديد',
+    org: 'Group Engineering Directorate',
+    location: 'ورشة الوزيري (01004583704) / مصنع التجمع',
+    amount: 2500,
+    custodian: 'أ. محمود بيومي (منسق عام الإدارة الهندسية)',
+    date: '2026-08-25',
+    status: 'Completed',
+    purpose: 'عهدة نقدية للف وتأهيل مواتير AC Brush عزل Class H وتغيير بلي أصلي بدلاً من شراء مواتير جديدة لتوفير التكاليف',
+    authorizedBy: 'المهندس يحيى طارق فرج',
+    findings: 'تم فحص الروتور المحترق وإعادة لفه وتفريغ العوازل وخراطة الكوليكتور وتسوية العهدة بنجاح.'
+  },
+  {
+    id: 'CUSTODY-2026-003',
+    title: 'شراء خامات وإصلاح وتجديد مكتب خشب لفرع سيدرا التسعين',
+    org: 'Sidera Confectionery (ORG-SID)',
+    location: 'فرع سيدرا التسعين',
+    amount: 1000,
+    custodian: 'عماد محمود أحمد (كود 18057 - نجار)',
+    date: '2026-08-26',
+    status: 'Completed',
+    purpose: 'شراء خامات أخشاب ومفصلات وتجديد مكتب الإدارة بفرع التسعين',
+    authorizedBy: 'المهندس يحيى طارق فرج'
+  },
+  {
+    id: 'CUSTODY-2026-004',
+    title: 'شراء مباشر لخامات حدادة محلياً لتوفير نولون النقل لمصنع العاشر',
+    org: 'El Madina El Monawara (المدينة المنورة)',
+    location: 'مصنع الشرقية (العاشر من رمضان)',
+    amount: 2000,
+    custodian: 'هاني محمود شندي (كود 18074 - حداد)',
+    date: '2026-08-26',
+    status: 'In Progress',
+    purpose: 'شراء خامات حدادة وصاج وزوايا حديد محلياً من العاشر لتنفيذ أعمال تصنيع أبواب وحمايات بالتنسيق مع المشتريات',
+    authorizedBy: 'المهندس يحيى طارق فرج'
+  }
+];

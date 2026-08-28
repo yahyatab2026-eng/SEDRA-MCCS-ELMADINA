@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>نموذج زيارة الفني الميداني | شركة سيدره (CMMS)</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-slate-100 text-slate-900 font-['Cairo',sans-serif] antialiased min-h-screen pb-12">
+
+  <!-- Header Bar -->
+  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+    <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2 space-x-reverse">
+        <span class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-sm">
+          📱
+        </span>
+        <div>
+          <div class="font-bold text-sm leading-tight">نموذج الزيارة الميدانية</div>
+          <div class="text-[10px] text-slate-400">فريق الصيانة والتشغيل - سيدره</div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 space-x-reverse text-xs">
+        <a href="?page=dashboard" class="text-slate-300 hover:text-white bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700 transition">
+          لوحة التحكم 💻
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Form Container -->
+  <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
+
+    <!-- Offline Queue Status Alert -->
+    <div id="offlineQueueAlert" class="bg-amber-500 text-white text-xs p-3 rounded-xl shadow-xs hidden flex items-center justify-between">
+      <span>⚠️ توجد تقارير مخزنة محلياً في انتظار إعادة الإرسال.</span>
+      <button onclick="processOfflineQueue()" class="bg-white text-amber-900 font-bold px-2 py-1 rounded text-[10px]">إرسال الآن</button>
+    </div>
+
+    <!-- Stepper Progress Bar (7 Steps) -->
+    <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+      <div class="flex items-center justify-between text-xs font-bold text-slate-600 mb-2">
+        <span id="stepTitleDisplay">الخطوة 1: اختيار أمر الصيانة</span>
+        <span id="stepCounterDisplay" class="text-emerald-600 font-mono">1 / 7</span>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+        <div id="progressBar" class="bg-emerald-600 h-2 rounded-full transition-all duration-300 w-[14%]"></div>
+      </div>
+    </div>
+
+    <!-- Wizard Form Card -->
+    <form id="visitWizardForm" onsubmit="return false;" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
+      
+      <!-- ================================================================== -->
+      <!-- STEP 1: SELECT / ENTER WORK ORDER -->
+      <!-- ================================================================== -->
+      <div id="step-1" class="wizard-step space-y-4">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">1. اختيار أمر الشغل (Work Order)</h3>
+          <p class="text-xs text-slate-500">اختر من البلاغات المفتوحة المكلفة لك أو اكتب الرقم يدوياً</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">البلاغات المكلفة المفتوحة:</label>
+          <select id="activeWoSelect" onchange="onSelectWoDropdown(this.value)" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500">
+            <option value="">-- اختر من القائمة --</option>
+          </select>
+        </div>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-2 text-[10px] text-slate-400 font-semibold">أو إدخال يدوي</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">رقم البلاغ (WO ID):</label>
+          <input type="text" id="manualWoId" placeholder="مثال: WO-2026-000101" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-50 font-mono uppercase focus:bg-white focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم الفني:</label>
+          <select id="techSelect" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500">
+            <option value="">-- اختر اسمك --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- STEP 2: GPS ARRIVAL GEOLOCATION -->
+      <!-- ================================================================== -->
+      <div id="step-2" class="wizard-step space-y-4 hidden">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">2. إثبات الموقع الجغرافي للوصول (GPS)</h3>
+          <p class="text-xs text-slate-500">تأكيد التواجد الميداني في الفرع / المصنع</p>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-xl font-bold">
+            📍
+          </div>
+          <button type="button" onclick="acquireArrivalGps()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition flex items-center justify-center space-x-1 space-x-reverse">
+            <span id="gpsSpinner" class="hidden">⏳</span>
+            <span>التقاط إحداثيات الموقع الآن</span>
+          </button>
+          <div id="gpsStatusText" class="text-[11px] text-slate-500">في انتظار تحديد الإحداثيات...</div>
+        </div>
+
+        <!-- Manual Lat/Lng Fallback -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Latitude:</label>
+            <input type="number" step="any" id="arriveLat" placeholder="30.0578" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Longitude:</label>
+            <input type="number" step="any" id="arriveLng" placeholder="31.3418" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs">
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- STEP 3: ARRIVAL TIMESTAMP -->
+      <!-- ================================================================== -->
+      <div id="step-3" class="wizard-step space-y-4 hidden">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">3. تسجيل وقت الوصول الميداني</h3>
+          <p class="text-xs text-slate-500">توثيق لحظة بدء العمل واحتساب زمن الاستجابة</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">تاريخ ووقت الوصول:</label>
+          <input type="text" id="arrivedAtInput" readonly class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-100 font-mono text-slate-800">
+        </div>
+
+        <button type="button" onclick="stampArrivalTime()" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs transition">
+          ⏱️ ختم الوقت الحالي للوصول
+        </button>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- STEP 4: BEFORE PHOTOS (CANVAS DOWNSCALE MAX 1024PX) -->
+      <!-- ================================================================== -->
+      <div id="step-4" class="wizard-step space-y-4 hidden">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">4. تصوير العطل قبل بدء الإصلاح (Before)</h3>
+          <p class="text-xs text-slate-500">التقط صورة واضحة لحالة المعدة (يتم تصغيرها تلقائياً لتوفير البيانات)</p>
+        </div>
+
+        <div class="border-2 border-dashed border-slate-300 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100 transition relative">
+          <input type="file" accept="image/*" capture="environment" id="beforePhotoInput" onchange="handleImageInput(this, 'beforePhotoPreview', 'beforePhotoBase64')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+          <div class="space-y-2">
+            <span class="text-3xl block">📷</span>
+            <span class="text-xs font-bold text-slate-700 block">اضغط هنا لالتقاط صورة بالكاميرا</span>
+            <span class="text-[10px] text-slate-400 block">أو اختيار من معرض الصور</span>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div id="beforePhotoPreviewContainer" class="hidden">
+          <img id="beforePhotoPreview" src="" alt="صورة قبل الإصلاح" class="w-full h-48 object-cover rounded-xl border border-slate-200">
+          <input type="hidden" id="beforePhotoBase64">
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- STEP 5: WORK DONE, PARTS & LABOR -->
+      <!-- ================================================================== -->
+      <div id="step-5" class="wizard-step space-y-4 hidden">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">5. تفاصيل الصيانة وقطع الغيار والتكلفة</h3>
+          <p class="text-xs text-slate-500">سجل الإجراءات الفنية المنفذة بدقة</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">الأعمال المنفذة (Work Done):</label>
+          <textarea id="workDoneInput" rows="3" placeholder="اكتب بالتفصيل ما تم فحصه وإصلاحه..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">قطع الغيار المستخدمة (إن وجدت):</label>
+          <input type="text" id="partsUsedInput" placeholder="مثال: كابستور 4 ميكرو + مروحة كوندنسر" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 mb-1">تكلفة قطع الغيار (ج.م):</label>
+            <input type="number" id="costPartsInput" value="0" min="0" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 mb-1">تكلفة المصنعية (ج.م):</label>
+            <input type="number" id="costLaborInput" value="0" min="0" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">ملاحظات إضافية وتوصيات وقائية:</label>
+          <input type="text" id="notesInput" placeholder="أي توصيات للفرع أو موعد صيانة قادمة" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- STEP 6: AFTER PHOTOS & OPTIONAL VIDEO -->
+      <!-- ================================================================== -->
+      <div id="step-6" class="wizard-step space-y-4 hidden">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">6. تصوير المعدة بعد الإصلاح (After)</h3>
+          <p class="text-xs text-slate-500">توثيق نجاح الإصلاح ونظافة الموقع للمقارنة الآلية</p>
+        </div>
+
+        <div class="border-2 border-dashed border-emerald-300 rounded-2xl p-4 text-center bg-emerald-50/50 hover:bg-emerald-50 transition relative">
+          <input type="file" accept="image/*" capture="environment" id="afterPhotoInput" onchange="handleImageInput(this, 'afterPhotoPreview', 'afterPhotoBase64')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+          <div class="space-y-2">
+            <span class="text-3xl block">📸</span>
+            <span class="text-xs font-bold text-emerald-800 block">التقط صورة ما بعد الإصلاح</span>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div id="afterPhotoPreviewContainer" class="hidden">
+          <img id="afterPhotoPreview" src="" alt="صورة بعد الإصلاح" class="w-full h-48 object-cover rounded-xl border border-emerald-200">
+          <input type="hidden" id="afterPhotoBase64">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">رابط فيديو توثيقي (اختياري - Google Drive / YouTube):</label>
+          <input type="url" id="videoUrlInput" placeholder="https://drive.google.com/file/d/..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- STEP 7: DEPARTURE & FINAL SUBMISSION -->
+      <!-- ================================================================== -->
+      <div id="step-7" class="wizard-step space-y-4 hidden">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-1">7. إنهاء الزيارة وتسليم التقرير</h3>
+          <p class="text-xs text-slate-500">اعتماد البيانات وإرسال التقرير لـ Google Sheets و Drive</p>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+          <div class="flex justify-between border-b border-slate-200 pb-1.5">
+            <span class="text-slate-500">أمر الشغل:</span>
+            <strong class="text-slate-900 font-mono" id="summaryWoId">--</strong>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-1.5">
+            <span class="text-slate-500">الفني:</span>
+            <strong class="text-slate-900" id="summaryTech">--</strong>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-1.5">
+            <span class="text-slate-500">وقت الوصول:</span>
+            <strong class="text-slate-900" id="summaryArrival">--</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">إجمالي التكلفة:</span>
+            <strong class="text-emerald-700 font-bold" id="summaryTotalCost">0 ج.م</strong>
+          </div>
+        </div>
+
+        <div id="submissionStatus" class="hidden text-xs p-3 rounded-xl text-center font-bold"></div>
+
+        <button type="button" id="btnSubmitVisit" onclick="submitFinalVisitForm()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center space-x-2 space-x-reverse">
+          <span id="submitSpinner" class="hidden">⏳</span>
+          <span>✅ اعتماد وإرسال تقرير الصيانة</span>
+        </button>
+      </div>
+
+      <!-- Navigation Buttons (Next / Prev) -->
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+        <button type="button" id="btnPrevStep" onclick="prevStep()" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition hidden">
+          السابق
+        </button>
+        <button type="button" id="btnNextStep" onclick="nextStep()" class="px-6 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs mr-auto">
+          المتابعة للخطوة التالية ➔
+        </button>
+      </div>
+
+    </form>
+
+  </main>
+
+  <script>
+    let currentStep = 1;
+    const totalSteps = 7;
+    let visitData = {
+      wo_id: '',
+      tech_id: '',
+      tech_name: '',
+      arrive_lat: 0,
+      arrive_lng: 0,
+      arrived_at: '',
+      departed_at: '',
+      before_photo: '',
+      after_photo: '',
+      work_done: '',
+      parts_used: '',
+      cost_parts: 0,
+      cost_labor: 0,
+      notes: '',
+      video_url: ''
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadInitialData();
+      stampArrivalTime();
+      checkOfflineQueue();
+    });
+
+    function loadInitialData() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            populateTechs(res.technicians || []);
+            populateWos(res.activeWorkOrders || []);
+          })
+          .getInitialVisitData();
+      }
+    }
+
+    function populateTechs(techs) {
+      const select = document.getElementById('techSelect');
+      select.innerHTML = '<option value="">-- اختر اسمك --</option>';
+      techs.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `${t.name} (${t.specialty})`;
+        select.appendChild(opt);
+      });
+    }
+
+    function populateWos(wos) {
+      const select = document.getElementById('activeWoSelect');
+      select.innerHTML = '<option value="">-- اختر من القائمة --</option>';
+      wos.forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w.wo_id;
+        opt.textContent = `${w.wo_id} | ${w.location_name} (${w.severity})`;
+        select.appendChild(opt);
+      });
+    }
+
+    function onSelectWoDropdown(val) {
+      if (val) document.getElementById('manualWoId').value = val;
+    }
+
+    // Step Navigation
+    function showStep(step) {
+      currentStep = step;
+      for (let i = 1; i <= totalSteps; i++) {
+        const el = document.getElementById(`step-${i}`);
+        if (el) el.classList.toggle('hidden', i !== step);
+      }
+
+      document.getElementById('stepCounterDisplay').textContent = `${step} / ${totalSteps}`;
+      document.getElementById('progressBar').style.width = `${(step / totalSteps) * 100}%`;
+
+      const titles = [
+        '1: اختيار أمر الصيانة',
+        '2: إثبات الموقع (GPS)',
+        '3: تسجيل وقت الوصول',
+        '4: تصوير العطل (Before)',
+        '5: تفاصيل الصيانة والتكلفة',
+        '6: تصوير بعد الإصلاح (After)',
+        '7: تسليم التقرير'
+      ];
+      document.getElementById('stepTitleDisplay').textContent = `الخطوة ${titles[step - 1]}`;
+
+      document.getElementById('btnPrevStep').classList.toggle('hidden', step === 1);
+      document.getElementById('btnNextStep').classList.toggle('hidden', step === totalSteps);
+
+      if (step === 7) populateSummary();
+    }
+
+    function nextStep() {
+      // Validate Step 1
+      if (currentStep === 1) {
+        const woId = document.getElementById('manualWoId').value || document.getElementById('activeWoSelect').value;
+        const techId = document.getElementById('techSelect').value;
+        if (!woId) return alert('الرجاء اختيار أو إدخال رقم أمر الصيانة (WO ID)');
+        visitData.wo_id = woId.trim();
+        visitData.tech_id = techId;
+        const techEl = document.getElementById('techSelect');
+        visitData.tech_name = techEl.options[techEl.selectedIndex]?.text || techId;
+      }
+
+      if (currentStep < totalSteps) showStep(currentStep + 1);
+    }
+
+    function prevStep() {
+      if (currentStep > 1) showStep(currentStep - 1);
+    }
+
+    // GPS Acquisition
+    function acquireArrivalGps() {
+      document.getElementById('gpsSpinner').classList.remove('hidden');
+      document.getElementById('gpsStatusText').textContent = 'جاري الاتصال بالأقمار الصناعية...';
+
+      if (!navigator.geolocation) {
+        document.getElementById('gpsSpinner').classList.add('hidden');
+        document.getElementById('gpsStatusText').textContent = 'متصفحك لا يدعم Geolocation، يرجى إدخالها يدوياً.';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          document.getElementById('gpsSpinner').classList.add('hidden');
+          const lat = +pos.coords.latitude.toFixed(6);
+          const lng = +pos.coords.longitude.toFixed(6);
+          document.getElementById('arriveLat').value = lat;
+          document.getElementById('arriveLng').value = lng;
+          visitData.arrive_lat = lat;
+          visitData.arrive_lng = lng;
+          document.getElementById('gpsStatusText').innerHTML = `✅ تم التقاط الإحداثيات بنجاح (دقة: ${Math.round(pos.coords.accuracy)}م)`;
+        },
+        err => {
+          document.getElementById('gpsSpinner').classList.add('hidden');
+          document.getElementById('gpsStatusText').textContent = `تعذر الوصول لـ GPS (${err.message}). يمكنك إدخالها يدوياً.`;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    // Time Stamp Helper
+    function stampArrivalTime() {
+      const now = new Date();
+      const formatted = now.toISOString().replace('T', ' ').substring(0, 16);
+      document.getElementById('arrivedAtInput').value = formatted;
+      visitData.arrived_at = formatted;
+    }
+
+    // Canvas Downscaler (Max 1024px) for Fast Cellular Upload
+    function handleImageInput(input, previewId, base64HiddenId) {
+      if (!input.files || !input.files[0]) return;
+      const file = input.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1024;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG 0.82
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+          
+          document.getElementById(previewId).src = resizedBase64;
+          document.getElementById(`${previewId}Container`).classList.remove('hidden');
+          document.getElementById(base64HiddenId).value = resizedBase64;
+
+          if (base64HiddenId === 'beforePhotoBase64') visitData.before_photo = resizedBase64;
+          if (base64HiddenId === 'afterPhotoBase64') visitData.after_photo = resizedBase64;
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Populate Summary on Step 7
+    function populateSummary() {
+      visitData.work_done = document.getElementById('workDoneInput').value;
+      visitData.parts_used = document.getElementById('partsUsedInput').value;
+      visitData.cost_parts = Number(document.getElementById('costPartsInput').value) || 0;
+      visitData.cost_labor = Number(document.getElementById('costLaborInput').value) || 0;
+      visitData.notes = document.getElementById('notesInput').value;
+      visitData.video_url = document.getElementById('videoUrlInput').value;
+      visitData.departed_at = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+      document.getElementById('summaryWoId').textContent = visitData.wo_id;
+      document.getElementById('summaryTech').textContent = visitData.tech_name || 'غير محدد';
+      document.getElementById('summaryArrival').textContent = visitData.arrived_at;
+      document.getElementById('summaryTotalCost').textContent = `${visitData.cost_parts + visitData.cost_labor} ج.م`;
+    }
+
+    // Final Submit with Offline Retry Queue in localStorage
+    function submitFinalVisitForm() {
+      const btn = document.getElementById('btnSubmitVisit');
+      const spinner = document.getElementById('submitSpinner');
+      const statusBox = document.getElementById('submissionStatus');
+
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      statusBox.className = 'text-xs p-3 rounded-xl text-center font-bold bg-blue-100 text-blue-800';
+      statusBox.textContent = 'جاري رفع الصور وحفظ البيانات في Google Sheets و Drive...';
+      statusBox.classList.remove('hidden');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+            statusBox.className = 'text-xs p-3 rounded-xl text-center font-bold bg-emerald-100 text-emerald-800';
+            statusBox.innerHTML = `✅ تم تسليم التقرير بنجاح! رقم الزيارة: <strong>${res.visit_id}</strong>`;
+            alert('تم اعتماد الزيارة وتحديث حالة أمر الشغل إلى "مُنجز". شكراً لك!');
+            setTimeout(() => { window.location.href = '?page=dashboard'; }, 1500);
+          })
+          .withFailureHandler(err => {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+            // Save to offline queue
+            saveToOfflineQueue(visitData);
+            statusBox.className = 'text-xs p-3 rounded-xl text-center font-bold bg-amber-100 text-amber-900';
+            statusBox.textContent = 'تعذر الاتصال بالخادم. تم حفظ التقرير محلياً على هاتفك وستتم إعادة المحاولة تلقائياً.';
+          })
+          .submitVisitReport(visitData);
+      } else {
+        // Mock fallback
+        setTimeout(() => {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          statusBox.className = 'text-xs p-3 rounded-xl text-center font-bold bg-emerald-100 text-emerald-800';
+          statusBox.textContent = '✅ تم الحفظ (وضع المعاينة).';
+        }, 1000);
+      }
+    }
+
+    // Offline Storage Mechanism
+    function saveToOfflineQueue(data) {
+      const queue = JSON.parse(localStorage.getItem('cmms_offline_queue') || '[]');
+      queue.push({ data: data, timestamp: new Date().getTime(), retries: 0 });
+      localStorage.setItem('cmms_offline_queue', JSON.stringify(queue));
+      checkOfflineQueue();
+    }
+
+    function checkOfflineQueue() {
+      const queue = JSON.parse(localStorage.getItem('cmms_offline_queue') || '[]');
+      document.getElementById('offlineQueueAlert').classList.toggle('hidden', queue.length === 0);
+    }
+
+    function processOfflineQueue() {
+      const queue = JSON.parse(localStorage.getItem('cmms_offline_queue') || '[]');
+      if (queue.length === 0) return;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        const item = queue[0];
+        google.script.run
+          .withSuccessHandler(() => {
+            queue.shift();
+            localStorage.setItem('cmms_offline_queue', JSON.stringify(queue));
+            checkOfflineQueue();
+            alert('تم إرسال التقرير المخزن محلياً بنجاح');
+          })
+          .submitVisitReport(item.data);
+      }
+    }
+  </script>
+</body>
+</html>

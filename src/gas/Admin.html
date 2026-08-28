@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>لوحة إدارة النظام | شركة سيدره (CMMS)</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-slate-50 text-slate-900 font-['Cairo',sans-serif] antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3 space-x-reverse">
+          <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-xl text-white border border-slate-700">
+            ⚙️
+          </div>
+          <div>
+            <div class="font-bold text-lg leading-tight">إدارة نظام الصيانة</div>
+            <div class="text-xs text-slate-400">الإعدادات والمواقع والفنيين وسجلات الذكاء الاصطناعي</div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-4 space-x-reverse">
+          <a href="?page=dashboard" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition">
+            لوحة التحكم 📊
+          </a>
+          <a href="?page=visit" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition">
+            نموذج الفني 📱
+          </a>
+          <a href="?page=admin" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-slate-800 text-white border border-slate-700">
+            الإدارة ⚙️
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Admin Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Admin Navigation Tabs -->
+    <div class="flex border-b border-slate-200 space-x-2 space-x-reverse text-sm font-bold overflow-x-auto pb-1">
+      <button onclick="switchTab('locations')" id="tabBtn-locations" class="px-4 py-2 border-b-2 border-emerald-600 text-emerald-700 transition">
+        المواقع والفروع (40)
+      </button>
+      <button onclick="switchTab('techs')" id="tabBtn-techs" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        الفنيون (16)
+      </button>
+      <button onclick="switchTab('settings')" id="tabBtn-settings" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        إعدادات النظام والـ SLA
+      </button>
+      <button onclick="switchTab('export')" id="tabBtn-export" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        تصدير البيانات (CSV)
+      </button>
+      <button onclick="switchTab('ailogs')" id="tabBtn-ailogs" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        سجلات الذكاء الاصطناعي (AI_Log)
+      </button>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 1: LOCATIONS MANAGEMENT -->
+    <!-- ==================================================================== -->
+    <section id="tab-locations" class="admin-tab space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="font-bold text-base text-slate-900">سجل المواقع والفروع والمصانع (Locations)</h3>
+        <button onclick="openLocationModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+          + إضافة موقع جديد
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3">الكود</th>
+              <th class="px-4 py-3">اسم الموقع / الفرع</th>
+              <th class="px-4 py-3">النوع</th>
+              <th class="px-4 py-3">المنطقة</th>
+              <th class="px-4 py-3">الإحداثيات</th>
+              <th class="px-4 py-3">العنوان</th>
+              <th class="px-4 py-3">الحالة</th>
+              <th class="px-4 py-3 text-center">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="locationsTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <tr><td colspan="8" class="text-center py-6 text-slate-400">جاري تحميل المواقع...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 2: TECHNICIANS MANAGEMENT -->
+    <!-- ==================================================================== -->
+    <section id="tab-techs" class="admin-tab space-y-4 hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="font-bold text-base text-slate-900">سجل الفنيين والمهندسين (Technicians)</h3>
+        <button onclick="openTechModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+          + إضافة فني جديد
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3">الكود</th>
+              <th class="px-4 py-3">اسم الفني</th>
+              <th class="px-4 py-3">رقم الهاتف</th>
+              <th class="px-4 py-3">التخصص الرئيسي</th>
+              <th class="px-4 py-3">الحالة</th>
+              <th class="px-4 py-3 text-center">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="techsTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <tr><td colspan="6" class="text-center py-6 text-slate-400">جاري تحميل الفنيين...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 3: SYSTEM SETTINGS -->
+    <!-- ==================================================================== -->
+    <section id="tab-settings" class="admin-tab space-y-4 hidden">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5 max-w-2xl">
+        <h3 class="font-bold text-base text-slate-900 border-b border-slate-200 pb-3">إعدادات النظام العامة (Settings)</h3>
+
+        <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">اسم المؤسسة (ORG_NAME):</label>
+            <input type="text" id="settingOrgName" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">اتفاقية SLA العادية (بالساعات):</label>
+              <input type="number" id="settingSlaHours" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">اتفاقية SLA العاجلة (بالساعات):</label>
+              <input type="number" id="settingSlaUrgent" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">نموذج الذكاء الاصطناعي الافتراضي (Gemini Model):</label>
+            <select id="settingDefaultModel" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+              <option value="gemini-2.5-flash">gemini-2.5-flash (موصى به - فائق السرعة ومجاني)</option>
+              <option value="gemini-3-flash">gemini-3-flash (الجيل الأحدث)</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro (تحليل عميق ومعقد)</option>
+            </select>
+            <p class="text-[10px] text-slate-500 mt-1">تتم قراءة هذا الإعداد مباشرة عند معالجة البلاغات وإعداد التقارير الأسبوعية.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">بريد مدير الصيانة للإشعارات:</label>
+              <input type="email" id="settingManagerEmail" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">هاتف مدير الصيانة للواتساب:</label>
+              <input type="text" id="settingManagerPhone" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+            </div>
+          </div>
+
+          <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-xs">
+            💾 حفظ التغييرات في Settings
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 4: EXPORT TO CSV -->
+    <!-- ==================================================================== -->
+    <section id="tab-export" class="admin-tab space-y-4 hidden">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4 max-w-xl">
+        <h3 class="font-bold text-base text-slate-900">تصدير جداول البيانات (Export CSV)</h3>
+        <p class="text-xs text-slate-500">تحميل أي تبويب من جداول Google Sheets كملف CSV نظيف للتحليلات الإحصائية الخارجية.</p>
+
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button onclick="downloadSheetCsv('WoHeaders')" class="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-right transition">
+            <span class="font-bold text-xs block text-slate-900">سجل البلاغات (WoHeaders)</span>
+            <span class="text-[10px] text-slate-500 block mt-1">تصدير كافة الحقول والأوقات والتشخيص</span>
+          </button>
+
+          <button onclick="downloadSheetCsv('Visits')" class="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-right transition">
+            <span class="font-bold text-xs block text-slate-900">سجل الزيارات (Visits)</span>
+            <span class="text-[10px] text-slate-500 block mt-1">إحداثيات GPS وساعات العمل وقطع الغيار</span>
+          </button>
+
+          <button onclick="downloadSheetCsv('Locations')" class="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-right transition">
+            <span class="font-bold text-xs block text-slate-900">المواقع والفروع (Locations)</span>
+            <span class="text-[10px] text-slate-500 block mt-1">قائمة 40 موقع والإحداثيات الجغرافية</span>
+          </button>
+
+          <button onclick="downloadSheetCsv('AI_Log')" class="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-right transition">
+            <span class="font-bold text-xs block text-slate-900">سجلات الذكاء الاصطناعي (AI_Log)</span>
+            <span class="text-[10px] text-slate-500 block mt-1">أزمنة الاستجابة ومعدلات النجاح</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 5: AI LOG VIEWER -->
+    <!-- ==================================================================== -->
+    <section id="tab-ailogs" class="admin-tab space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-base text-slate-900">سجل عمليات واستدعاءات الذكاء الاصطناعي (AI_Log)</h3>
+        <button onclick="loadAdminData()" class="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition">
+          🔄 تحديث السجل
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3">الوقت والتاريخ</th>
+              <th class="px-4 py-3">رقم البلاغ</th>
+              <th class="px-4 py-3">الإجراء</th>
+              <th class="px-4 py-3">النموذج المستخدم</th>
+              <th class="px-4 py-3">الحالة</th>
+              <th class="px-4 py-3">المدة (ms)</th>
+              <th class="px-4 py-3">ملاحظات وسجل الاستجابة</th>
+            </tr>
+          </thead>
+          <tbody id="aiLogsTableBody" class="divide-y divide-slate-100 text-slate-700 font-mono">
+            <tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">جاري تحميل السجلات...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let adminState = {
+      locations: [],
+      technicians: [],
+      settings: [],
+      aiLogs: []
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAdminData();
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.admin-tab').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('[id^="tabBtn-"]').forEach(btn => {
+        btn.classList.remove('border-emerald-600', 'text-emerald-700');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+      activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      activeBtn.classList.add('border-emerald-600', 'text-emerald-700');
+    }
+
+    function loadAdminData() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            adminState = res;
+            renderLocations();
+            renderTechs();
+            renderSettings();
+            renderAiLogs();
+          })
+          .getInitialAdminData();
+      }
+    }
+
+    function renderLocations() {
+      const tbody = document.getElementById('locationsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = adminState.locations.map(loc => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-2.5 font-mono font-bold">${loc.id}</td>
+          <td class="px-4 py-2.5 font-medium text-slate-900">${loc.name}</td>
+          <td class="px-4 py-2.5">${loc.type}</td>
+          <td class="px-4 py-2.5">${loc.region}</td>
+          <td class="px-4 py-2.5 font-mono text-[11px] text-slate-500">${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}</td>
+          <td class="px-4 py-2.5 text-slate-600 max-w-[200px] truncate">${loc.address}</td>
+          <td class="px-4 py-2.5">${loc.active ? '<span class="text-emerald-600 font-bold">نشط</span>' : '<span class="text-slate-400">معطل</span>'}</td>
+          <td class="px-4 py-2.5 text-center">
+            <button onclick="editLocation('${loc.id}')" class="text-blue-600 hover:underline font-bold">تعديل</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTechs() {
+      const tbody = document.getElementById('techsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = adminState.technicians.map(t => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-2.5 font-mono font-bold">${t.id}</td>
+          <td class="px-4 py-2.5 font-bold text-slate-900">${t.name}</td>
+          <td class="px-4 py-2.5 font-mono">${t.phone}</td>
+          <td class="px-4 py-2.5">${t.specialty}</td>
+          <td class="px-4 py-2.5">${t.active ? '<span class="text-emerald-600 font-bold">نشط</span>' : '<span class="text-slate-400">إجازة</span>'}</td>
+          <td class="px-4 py-2.5 text-center">
+            <button onclick="editTech('${t.id}')" class="text-blue-600 hover:underline font-bold">تعديل</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSettings() {
+      const getVal = key => (adminState.settings.find(s => s.key === key) || {}).value || '';
+      document.getElementById('settingOrgName').value = getVal('ORG_NAME');
+      document.getElementById('settingSlaHours').value = getVal('SLA_HOURS') || '24';
+      document.getElementById('settingSlaUrgent').value = getVal('SLA_URGENT_HOURS') || '4';
+      document.getElementById('settingDefaultModel').value = getVal('DEFAULT_MODEL') || 'gemini-2.5-flash';
+      document.getElementById('settingManagerEmail').value = getVal('MANAGER_EMAIL');
+      document.getElementById('settingManagerPhone').value = getVal('MANAGER_PHONE');
+    }
+
+    function renderAiLogs() {
+      const tbody = document.getElementById('aiLogsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = adminState.aiLogs.map(log => `
+        <tr class="hover:bg-slate-50 text-[11px]">
+          <td class="px-4 py-2 text-slate-500">${log.ts}</td>
+          <td class="px-4 py-2 font-bold text-slate-900">${log.wo_id}</td>
+          <td class="px-4 py-2 text-indigo-700">${log.action}</td>
+          <td class="px-4 py-2 text-slate-600">${log.model}</td>
+          <td class="px-4 py-2">${log.ok ? '<span class="text-emerald-600 font-bold">OK (200)</span>' : '<span class="text-rose-600 font-bold">FAIL</span>'}</td>
+          <td class="px-4 py-2 text-slate-700">${log.ms} ms</td>
+          <td class="px-4 py-2 text-slate-600 font-sans truncate max-w-[240px]">${log.note}</td>
+        </tr>
+      `).join('');
+    }
+
+    function downloadSheetCsv(sheetName) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(csvText => {
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Sidrah_CMMS_${sheetName}_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+          })
+          .exportSheetToCsv(sheetName);
+      } else {
+        alert(`تصدير جدول ${sheetName} متاح في بيئة Google Apps Script المنشورة.`);
+      }
+    }
+  </script>
+</body>
+</html>
