@@ -13,6 +13,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { useSystemSettings } from '../context/SystemSettingsContext';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 export type AppTab = 'dashboard' | 'report' | 'visit' | 'assets_risks' | 'suppliers' | 'inventory' | 'workspace' | 'admin' | 'gas_hub';
 
@@ -68,6 +69,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, lang, s
               )}
             </div>
           </div>
+        </div>
+
+        {/* Sync & Online/Offline Status */}
+        <div className="hidden lg:block">
+          <SyncStatusBadge />
         </div>
 
         {/* Navigation Tabs */}

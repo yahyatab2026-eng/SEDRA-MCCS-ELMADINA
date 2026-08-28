@@ -521,83 +521,104 @@ const SheetsDB = (function() {
   }
 
   function insertWorkOrder(woData) {
-    const sheet = getSheet(CONFIG.SHEETS.WO_HEADERS);
-    const woId = woData.wo_id || generateNextWoId();
-    const createdAt = woData.created_at || formatDate(new Date());
-    
-    // Calculate SLA Deadline
-    const slaHours = (woData.severity === CONFIG.SEVERITIES.URGENT) 
-      ? parseInt(getAppSetting('SLA_URGENT_HOURS') || 4, 10) 
-      : parseInt(getAppSetting('SLA_HOURS') || 24, 10);
-    
-    const deadlineDate = new Date(new Date().getTime() + (slaHours * 3600 * 1000));
-    const slaDeadline = woData.sla_deadline || formatDate(deadlineDate);
+    const lock = LockService.getScriptLock();
+    try {
+      // Wait up to 30 seconds for concurrent write lock
+      lock.waitLock(30000);
 
-    const row = [
-      woId,
-      createdAt,
-      woData.location_id || '',
-      woData.location_name || '',
-      woData.reporter || '',
-      woData.reporter_phone || '',
-      woData.category || '',
-      woData.subcategory || '',
-      woData.description || '',
-      woData.severity || CONFIG.SEVERITIES.MEDIUM,
-      woData.status || CONFIG.STATUSES.REPORTED,
-      slaDeadline,
-      woData.assigned_tech || '',
-      woData.assigned_at || '',
-      woData.cost_parts || 0,
-      woData.cost_labor || 0,
-      woData.closed_at || '',
-      woData.gemini_summary || '',
-      typeof woData.gemini_json === 'object' ? JSON.stringify(woData.gemini_json) : (woData.gemini_json || ''),
-      woData.before_photo || '',
-      woData.after_photo || '',
-      woData.video_url || '',
-      woData.source || 'Web App',
-      woData.form_response_url || ''
-    ];
+      const sheet = getSheet(CONFIG.SHEETS.WO_HEADERS);
+      const woId = woData.wo_id || generateNextWoId();
+      const createdAt = woData.created_at || formatDate(new Date());
+      
+      // Calculate SLA Deadline
+      const slaHours = (woData.severity === CONFIG.SEVERITIES.URGENT) 
+        ? parseInt(getAppSetting('SLA_URGENT_HOURS') || 4, 10) 
+        : parseInt(getAppSetting('SLA_HOURS') || 24, 10);
+      
+      const deadlineDate = new Date(new Date().getTime() + (slaHours * 3600 * 1000));
+      const slaDeadline = woData.sla_deadline || formatDate(deadlineDate);
 
-    sheet.appendRow(row);
-    clearCache('CMMS_STATS');
-    return { success: true, wo_id: woId, sla_deadline: slaDeadline };
+      const row = [
+        woId,
+        createdAt,
+        woData.location_id || '',
+        woData.location_name || '',
+        woData.reporter || '',
+        woData.reporter_phone || '',
+        woData.category || '',
+        woData.subcategory || '',
+        woData.description || '',
+        woData.severity || CONFIG.SEVERITIES.MEDIUM,
+        woData.status || CONFIG.STATUSES.REPORTED,
+        slaDeadline,
+        woData.assigned_tech || '',
+        woData.assigned_at || '',
+        woData.cost_parts || 0,
+        woData.cost_labor || 0,
+        woData.closed_at || '',
+        woData.gemini_summary || '',
+        typeof woData.gemini_json === 'object' ? JSON.stringify(woData.gemini_json) : (woData.gemini_json || ''),
+        woData.before_photo || '',
+        woData.after_photo || '',
+        woData.video_url || '',
+        woData.source || 'Web App',
+        woData.form_response_url || ''
+      ];
+
+      sheet.appendRow(row);
+      clearCache('CMMS_STATS');
+      return { success: true, wo_id: woId, sla_deadline: slaDeadline };
+    } catch (err) {
+      Logger.log(`Lock or insert error in insertWorkOrder: ${err.message}`);
+      throw err;
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   function updateWorkOrder(woId, updateData) {
-    const sheet = getSheet(CONFIG.SHEETS.WO_HEADERS);
-    const existing = getWorkOrderById(woId);
-    if (!existing) {
-      throw new Error(`Work Order ${woId} not found`);
-    }
+    const lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
 
-    const rowNum = existing._row;
-    
-    // Columns mapping:
-    // 10: severity, 11: status, 13: assigned_tech, 14: assigned_at, 15: cost_parts, 16: cost_labor, 17: closed_at, 18: gemini_summary, 19: gemini_json, 20: before_photo, 21: after_photo, 22: video_url
-    if (updateData.status) sheet.getRange(rowNum, 11).setValue(updateData.status);
-    if (updateData.assigned_tech !== undefined) {
-      sheet.getRange(rowNum, 13).setValue(updateData.assigned_tech);
-      sheet.getRange(rowNum, 14).setValue(formatDate(new Date()));
-      if (!existing.status || existing.status === CONFIG.STATUSES.REPORTED) {
-        sheet.getRange(rowNum, 11).setValue(CONFIG.STATUSES.ASSIGNED);
+      const sheet = getSheet(CONFIG.SHEETS.WO_HEADERS);
+      const existing = getWorkOrderById(woId);
+      if (!existing) {
+        throw new Error(`Work Order ${woId} not found`);
       }
-    }
-    if (updateData.cost_parts !== undefined) sheet.getRange(rowNum, 15).setValue(updateData.cost_parts);
-    if (updateData.cost_labor !== undefined) sheet.getRange(rowNum, 16).setValue(updateData.cost_labor);
-    if (updateData.closed_at !== undefined) sheet.getRange(rowNum, 17).setValue(updateData.closed_at);
-    if (updateData.gemini_summary !== undefined) sheet.getRange(rowNum, 18).setValue(updateData.gemini_summary);
-    if (updateData.gemini_json !== undefined) {
-      const jsonStr = typeof updateData.gemini_json === 'object' ? JSON.stringify(updateData.gemini_json) : updateData.gemini_json;
-      sheet.getRange(rowNum, 19).setValue(jsonStr);
-    }
-    if (updateData.before_photo !== undefined) sheet.getRange(rowNum, 20).setValue(updateData.before_photo);
-    if (updateData.after_photo !== undefined) sheet.getRange(rowNum, 21).setValue(updateData.after_photo);
-    if (updateData.video_url !== undefined) sheet.getRange(rowNum, 22).setValue(updateData.video_url);
 
-    clearCache('CMMS_STATS');
-    return { success: true, wo_id: woId };
+      const rowNum = existing._row;
+      
+      // Columns mapping:
+      // 10: severity, 11: status, 13: assigned_tech, 14: assigned_at, 15: cost_parts, 16: cost_labor, 17: closed_at, 18: gemini_summary, 19: gemini_json, 20: before_photo, 21: after_photo, 22: video_url
+      if (updateData.status) sheet.getRange(rowNum, 11).setValue(updateData.status);
+      if (updateData.assigned_tech !== undefined) {
+        sheet.getRange(rowNum, 13).setValue(updateData.assigned_tech);
+        sheet.getRange(rowNum, 14).setValue(formatDate(new Date()));
+        if (!existing.status || existing.status === CONFIG.STATUSES.REPORTED) {
+          sheet.getRange(rowNum, 11).setValue(CONFIG.STATUSES.ASSIGNED);
+        }
+      }
+      if (updateData.cost_parts !== undefined) sheet.getRange(rowNum, 15).setValue(updateData.cost_parts);
+      if (updateData.cost_labor !== undefined) sheet.getRange(rowNum, 16).setValue(updateData.cost_labor);
+      if (updateData.closed_at !== undefined) sheet.getRange(rowNum, 17).setValue(updateData.closed_at);
+      if (updateData.gemini_summary !== undefined) sheet.getRange(rowNum, 18).setValue(updateData.gemini_summary);
+      if (updateData.gemini_json !== undefined) {
+        const jsonStr = typeof updateData.gemini_json === 'object' ? JSON.stringify(updateData.gemini_json) : updateData.gemini_json;
+        sheet.getRange(rowNum, 19).setValue(jsonStr);
+      }
+      if (updateData.before_photo !== undefined) sheet.getRange(rowNum, 20).setValue(updateData.before_photo);
+      if (updateData.after_photo !== undefined) sheet.getRange(rowNum, 21).setValue(updateData.after_photo);
+      if (updateData.video_url !== undefined) sheet.getRange(rowNum, 22).setValue(updateData.video_url);
+
+      clearCache('CMMS_STATS');
+      return { success: true, wo_id: woId };
+    } catch (err) {
+      Logger.log(`Lock or update error in updateWorkOrder for ${woId}: ${err.message}`);
+      throw err;
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   // ==========================================================================

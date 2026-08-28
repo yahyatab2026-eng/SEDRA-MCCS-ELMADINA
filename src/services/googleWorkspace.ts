@@ -671,7 +671,7 @@ export const googleSlidesService = {
             `• إجمالي بلاغات الصيانة المسجلة: ${stats.totalWos} بلاغ\n`,
             `• أوامر الشغل المكتملة بنجاح: ${stats.completedWos} بلاغ (${Math.round((stats.completedWos / (stats.totalWos || 1)) * 100)}% معدل إنجاز)\n`,
             `• أوامر الشغل الجارية والحرجة: ${stats.pendingWos} بلاغ\n`,
-            `• إجمالي تكاليف قطع الغيار والعمالة: ${stats.totalCostEgp.toLocaleString()} ج.م\n`,
+            `• إجمالي تكاليف قطع الغيار والعمالة: ${(stats.totalCostEgp ?? 0).toLocaleString()} ج.م\n`,
             `• متوسط زمن الإصلاح الفعلي (MTTR): ${stats.mttrHours} ساعة\n`,
             `• نسبة جاهزية الماكينات والخطوط (Equipment Uptime): ${stats.uptimePercent}%\n\n`,
             `تم توليد هذا العرض تلقائياً عبر نظام Sidrah CMMS المتكامل مع Google Slides API.`

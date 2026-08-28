@@ -32,7 +32,10 @@ import {
   Phone,
   Table as TableIcon,
   Package,
-  Truck
+  Truck,
+  Wallet,
+  ClipboardCheck,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   initialLocations, 
@@ -40,13 +43,31 @@ import {
   initialAiLogs, 
   initialAssets, 
   initialSuppliers, 
-  initialInventory 
+  initialInventory,
+  initialCustodies,
+  initialBranchAudits,
+  initialGovernance,
+  initialDecisions
 } from '../data/seedData';
-import { LocationItem, TechnicianItem, AiLogEntry, AssetRecord, SupplierItem, InventoryItem } from '../types';
+import { 
+  LocationItem, 
+  TechnicianItem, 
+  AiLogEntry, 
+  AssetRecord, 
+  SupplierItem, 
+  InventoryItem,
+  CustodyRecord,
+  BranchAuditRecord,
+  GovernanceRecord,
+  AdminDecision
+} from '../types';
 import { useSystemSettings } from '../context/SystemSettingsContext';
 import { AdminLocationsManager } from './admin/AdminLocationsManager';
 import { AdminTechsManager } from './admin/AdminTechsManager';
 import { AdminAssetsManager } from './admin/AdminAssetsManager';
+import { AdminCustodiesManager } from './admin/AdminCustodiesManager';
+import { AdminBranchAuditsManager } from './admin/AdminBranchAuditsManager';
+import { AdminGovernanceManager } from './admin/AdminGovernanceManager';
 import { AdminGoogleIntegrations } from './admin/AdminGoogleIntegrations';
 import { AdminDynamicTableEditor } from './admin/AdminDynamicTableEditor';
 
@@ -66,7 +87,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
   } = useSystemSettings();
 
   const [activeTab, setActiveTab] = useState<
-    'dynamic_grid' | 'locations' | 'techs' | 'assets_db' | 'google_integrations' | 'ui_controls' | 'settings' | 'export' | 'ailogs'
+    | 'dynamic_grid' 
+    | 'custodies'
+    | 'audits'
+    | 'governance'
+    | 'locations' 
+    | 'techs' 
+    | 'assets_db' 
+    | 'google_integrations' 
+    | 'ui_controls' 
+    | 'settings' 
+    | 'export' 
+    | 'ailogs'
   >('dynamic_grid');
 
   // Database Collections State with LocalStorage Persistence
@@ -120,11 +152,52 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
     return initialInventory;
   });
 
+  const [custodies, setCustodies] = useState<CustodyRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_custodies_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved custodies', e);
+    }
+    return initialCustodies;
+  });
+
+  const [audits, setAudits] = useState<BranchAuditRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_audits_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved audits', e);
+    }
+    return initialBranchAudits;
+  });
+
+  const [governance, setGovernance] = useState<GovernanceRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_governance_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved governance', e);
+    }
+    return initialGovernance;
+  });
+
+  const [decisions, setDecisions] = useState<AdminDecision[]>(() => {
+    try {
+      const saved = localStorage.getItem('cmms_decisions_db');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load saved decisions', e);
+    }
+    return initialDecisions;
+  });
+
   const [aiLogs, setAiLogs] = useState<AiLogEntry[]>(initialAiLogs);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
+  // Update Handlers with immediate LocalStorage persistence
   const handleUpdateLocations = (newLocs: LocationItem[]) => {
     setLocations(newLocs);
     try {
@@ -180,6 +253,50 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
+  const handleUpdateCustodies = (newCustodies: CustodyRecord[]) => {
+    setCustodies(newCustodies);
+    try {
+      localStorage.setItem('cmms_custodies_db', JSON.stringify(newCustodies));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleUpdateAudits = (newAudits: BranchAuditRecord[]) => {
+    setAudits(newAudits);
+    try {
+      localStorage.setItem('cmms_audits_db', JSON.stringify(newAudits));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleUpdateGovernance = (newGov: GovernanceRecord[]) => {
+    setGovernance(newGov);
+    try {
+      localStorage.setItem('cmms_governance_db', JSON.stringify(newGov));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleUpdateDecisions = (newDecs: AdminDecision[]) => {
+    setDecisions(newDecs);
+    try {
+      localStorage.setItem('cmms_decisions_db', JSON.stringify(newDecs));
+    } catch (e) {
+      console.error(e);
+    }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
   const handleTriggerSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
@@ -188,6 +305,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       localStorage.setItem('cmms_assets_db', JSON.stringify(assets));
       localStorage.setItem('cmms_suppliers_db', JSON.stringify(suppliers));
       localStorage.setItem('cmms_inventory_db', JSON.stringify(inventory));
+      localStorage.setItem('cmms_custodies_db', JSON.stringify(custodies));
+      localStorage.setItem('cmms_audits_db', JSON.stringify(audits));
+      localStorage.setItem('cmms_governance_db', JSON.stringify(governance));
+      localStorage.setItem('cmms_decisions_db', JSON.stringify(decisions));
     } catch (err) {
       console.error(err);
     }
@@ -196,18 +317,28 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
   };
 
   const handleResetSettings = () => {
-    if (window.confirm(isAr ? 'هل تريد استعادة جميع إعدادات النظام والواجهة وقواعد البيانات إلى القيم الافتراضية؟' : 'Reset all settings and database tables to default values?')) {
+    if (window.confirm(isAr ? 'هل تريد استعادة جميع إعدادات النظام والواجهة والعهد والملاحظات والحوكمة إلى القيم الافتراضية؟' : 'Reset all settings and database tables to default values?')) {
       resetToDefaults();
       setLocations(initialLocations);
       setTechnicians(initialTechnicians);
       setAssets(initialAssets);
       setSuppliers(initialSuppliers);
       setInventory(initialInventory);
+      setCustodies(initialCustodies);
+      setAudits(initialBranchAudits);
+      setGovernance(initialGovernance);
+      setDecisions(initialDecisions);
+      
       localStorage.removeItem('cmms_locations_db');
       localStorage.removeItem('cmms_technicians_db');
       localStorage.removeItem('cmms_assets_db');
       localStorage.removeItem('cmms_suppliers_db');
       localStorage.removeItem('cmms_inventory_db');
+      localStorage.removeItem('cmms_custodies_db');
+      localStorage.removeItem('cmms_audits_db');
+      localStorage.removeItem('cmms_governance_db');
+      localStorage.removeItem('cmms_decisions_db');
+
       setResetSuccess(true);
       setTimeout(() => setResetSuccess(false), 2500);
     }
@@ -218,44 +349,44 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
     if (sheetName === 'Locations') rows = locations;
     else if (sheetName === 'Technicians') rows = technicians;
     else if (sheetName === 'Assets') rows = assets;
-    else if (sheetName === 'Suppliers') rows = suppliers;
+    else if (sheetName === 'Custodies') rows = custodies;
+    else if (sheetName === 'BranchAudits') rows = audits;
+    else if (sheetName === 'Governance') rows = governance;
+    else if (sheetName === 'Decisions') rows = decisions;
     else if (sheetName === 'AI_Log') rows = aiLogs;
-    else rows = [{ id: 'WO-2026-000101', status: 'قيد التنفيذ', cost: 1200 }];
 
-    const headers = Object.keys(rows[0] || {}).join(',');
-    const csvContent = [
-      headers,
-      ...rows.map(r => Object.values(r).map(v => typeof v === 'object' ? JSON.stringify(v).replace(/"/g, '""') : `"${v}"`).join(','))
-    ].join('\r\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    if (!rows.length) return;
+    const keys = Object.keys(rows[0]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + 
+      [keys.join(','), ...rows.map(row => keys.map(k => `"${String(row[k] || '').replace(/"/g, '""')}"`).join(','))].join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `Sidrah_${sheetName}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `cmms_${sheetName}_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-150">
+    <div className="space-y-6 animate-in fade-in duration-200">
       
-      {/* Top Banner Header */}
-      <div className="bg-white border-geometric p-4 sm:p-5 rounded-xs flex flex-wrap items-center justify-between gap-4">
+      {/* Top Header & Save / Reset Actions */}
+      <div className="bg-white border-geometric rounded-xs p-4 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-teal-700" />
-            <h2 className="text-base sm:text-lg font-black text-slate-900">
-              {isAr ? 'لوحة الإدارة الشاملة والتحكم في قاعدة البيانات والربط السحابي' : 'Central Admin & Database Master Control'}
-            </h2>
-          </div>
-          <p className="text-xs text-slate-600 mt-1">
+          <h2 className="font-black text-lg text-slate-900 flex items-center gap-2">
+            <Sliders className="w-5 h-5 text-teal-800" />
+            <span>{isAr ? 'الإدارة والتحكم الديناميكي الشامل في النظام' : 'CMMS Admin & System Control Center'}</span>
+          </h2>
+          <p className="text-xs text-slate-600 font-medium mt-0.5">
             {isAr 
-              ? 'تحكم كامل وبدون برمجة في خصائص واجهات المستخدم، جداول قاعدة البيانات، وتكاملات Google Workspace السحابية مع الحفظ الفوري.'
-              : 'Full no-code governance over UI components, databases, and Google Cloud endpoints.'}
+              ? 'التحكم الفوري في العهد المالية، ملاحظات وأعطال الفروع، الحوكمة والقرارات، المواقع، الفنيين، الأصول والربط السحابي.'
+              : 'Full dynamic management of custodies, branch audits, governance, decisions, assets, locations, and integrations.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {saveSuccess && (
             <div className="bg-emerald-100 text-emerald-800 border border-emerald-400 px-3 py-1.5 rounded-xs text-xs font-bold flex items-center gap-1.5 animate-in fade-in">
               <Check className="w-4 h-4 text-emerald-600" />
@@ -283,7 +414,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           <button
             type="button"
             onClick={() => handleTriggerSave()}
-            className="px-4 py-2 accent-teal text-white text-xs font-bold rounded-xs flex items-center gap-1.5 shadow-xs transition"
+            className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold rounded-xs flex items-center gap-1.5 shadow-xs transition"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{isAr ? 'تأكيد الحفظ والمزامنة' : 'Save & Sync'}</span>
@@ -292,48 +423,60 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       </div>
 
       {/* Sub Navigation Tabs */}
-      <div className="flex border-b border-slate-200 space-x-1 space-x-reverse text-xs sm:text-sm font-bold overflow-x-auto pb-1">
+      <div className="flex border-b border-slate-200 space-x-1 space-x-reverse text-xs font-bold overflow-x-auto pb-1">
         <button
           onClick={() => setActiveTab('dynamic_grid')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'dynamic_grid'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
-          <TableIcon className="w-4 h-4 text-teal-700" />
-          <span>{isAr ? '⚡ محرر الجداول الديناميكي (Live Grid)' : 'Live Data Grid'}</span>
+          <TableIcon className="w-4 h-4 text-teal-800" />
+          <span>{isAr ? '⚡ محرر الجداول المباشر (Live Grid)' : 'Live Data Grid'}</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('ui_controls')}
+          onClick={() => setActiveTab('custodies')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'ui_controls'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+            activeTab === 'custodies'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Sliders className="w-4 h-4" />
-          <span>{isAr ? '🎛️ تحكم واجهات المستخدم والخصائص' : 'UI Feature Controls'}</span>
+          <Wallet className="w-4 h-4 text-teal-700" />
+          <span>{isAr ? `💼 العهد المالية والفنية (${custodies.length})` : `Custodies (${custodies.length})`}</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('google_integrations')}
+          onClick={() => setActiveTab('audits')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'google_integrations'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+            activeTab === 'audits'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Globe className="w-4 h-4" />
-          <span>{isAr ? '🔗 ربط خدمات Google والـ API' : 'Google Integrations'}</span>
+          <ClipboardCheck className="w-4 h-4 text-rose-700" />
+          <span>{isAr ? `📋 ملاحظات وأعطال الفروع (${audits.length})` : `Branch Audits (${audits.length})`}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('governance')}
+          className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'governance'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-blue-700" />
+          <span>{isAr ? `⚖️ الحوكمة والقرارات (${governance.length + decisions.length})` : `Governance (${governance.length + decisions.length})`}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('locations')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'locations'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -345,7 +488,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           onClick={() => setActiveTab('techs')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'techs'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -357,7 +500,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           onClick={() => setActiveTab('assets_db')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'assets_db'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -366,22 +509,46 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
         </button>
 
         <button
+          onClick={() => setActiveTab('ui_controls')}
+          className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'ui_controls'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>{isAr ? '🎛️ خصائص الواجهة' : 'UI Controls'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('google_integrations')}
+          className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'google_integrations'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          <span>{isAr ? '🔗 ربط Google' : 'Integrations'}</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('settings')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'settings'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
           <Settings className="w-4 h-4" />
-          <span>{isAr ? '⚙️ إعدادات الـ SLA والنظام' : 'SLA & Org'}</span>
+          <span>{isAr ? '⚙️ إعدادات الـ SLA' : 'SLA & Org'}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('export')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'export'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -393,12 +560,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           onClick={() => setActiveTab('ailogs')}
           className={`px-3.5 py-2.5 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'ailogs'
-              ? 'border-teal-700 text-teal-900 bg-teal-50/50'
+              ? 'border-teal-800 text-teal-900 bg-teal-50/50'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>{isAr ? '🤖 سجلات Gemini AI' : 'AI Logs'}</span>
+          <span>{isAr ? '🤖 سجلات AI' : 'AI Logs'}</span>
         </button>
       </div>
 
@@ -413,16 +580,93 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
           assets={assets}
           suppliers={suppliers}
           inventory={inventory}
+          custodies={custodies}
+          audits={audits}
+          governance={governance}
+          decisions={decisions}
           onUpdateLocations={handleUpdateLocations}
           onUpdateTechnicians={handleUpdateTechnicians}
           onUpdateAssets={handleUpdateAssets}
           onUpdateSuppliers={handleUpdateSuppliers}
           onUpdateInventory={handleUpdateInventory}
+          onUpdateCustodies={handleUpdateCustodies}
+          onUpdateAudits={handleUpdateAudits}
+          onUpdateGovernance={handleUpdateGovernance}
+          onUpdateDecisions={handleUpdateDecisions}
         />
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 0: UI & FEATURE MASTER CONTROLS */}
+      {/* TAB: CUSTODIES MANAGER (العهد المالية والفنية) */}
+      {/* ==================================================================== */}
+      {activeTab === 'custodies' && (
+        <AdminCustodiesManager
+          custodies={custodies}
+          onUpdateCustodies={handleUpdateCustodies}
+          isAr={isAr}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB: BRANCH AUDITS MANAGER (ملاحظات وأعطال الفروع) */}
+      {/* ==================================================================== */}
+      {activeTab === 'audits' && (
+        <AdminBranchAuditsManager
+          audits={audits}
+          onUpdateAudits={handleUpdateAudits}
+          isAr={isAr}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB: GOVERNANCE & ADMIN DECISIONS (الحوكمة والقرارات الإدارية) */}
+      {/* ==================================================================== */}
+      {activeTab === 'governance' && (
+        <AdminGovernanceManager
+          governance={governance}
+          decisions={decisions}
+          onUpdateGovernance={handleUpdateGovernance}
+          onUpdateDecisions={handleUpdateDecisions}
+          isAr={isAr}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB: LOCATIONS DATABASE (DYNAMIC CRUD) */}
+      {/* ==================================================================== */}
+      {activeTab === 'locations' && (
+        <AdminLocationsManager
+          locations={locations}
+          onUpdateLocations={handleUpdateLocations}
+          isAr={isAr}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB: TECHNICIANS DATABASE (DYNAMIC CRUD & WHATSAPP) */}
+      {/* ==================================================================== */}
+      {activeTab === 'techs' && (
+        <AdminTechsManager
+          technicians={technicians}
+          onUpdateTechnicians={handleUpdateTechnicians}
+          isAr={isAr}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB: ASSETS & MACHINES DATABASE (DYNAMIC CRUD & QR CODES) */}
+      {/* ==================================================================== */}
+      {activeTab === 'assets_db' && (
+        <AdminAssetsManager
+          assets={assets}
+          locations={locations}
+          onUpdateAssets={handleUpdateAssets}
+          isAr={isAr}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB: UI & FEATURE MASTER CONTROLS */}
       {/* ==================================================================== */}
       {activeTab === 'ui_controls' && (
         <section className="space-y-5 animate-in fade-in duration-150">
@@ -440,7 +684,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
               <button
                 type="button"
                 onClick={() => handleTriggerSave()}
-                className="px-4 py-2 accent-teal text-white text-xs font-bold rounded-xs flex items-center gap-1.5 shadow-xs"
+                className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold rounded-xs flex items-center gap-1.5 shadow-xs"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{isAr ? 'حفظ تفضيلات الواجهة' : 'Save Preferences'}</span>
@@ -465,7 +709,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableGpsTracking}
                   onChange={e => updateFeatures({ enableGpsTracking: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -484,7 +728,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableAutoTimestamp}
                   onChange={e => updateFeatures({ enableAutoTimestamp: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -503,7 +747,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableVoiceRecording}
                   onChange={e => updateFeatures({ enableVoiceRecording: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -522,7 +766,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableVideoUpload}
                   onChange={e => updateFeatures({ enableVideoUpload: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -541,7 +785,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableDocumentUpload}
                   onChange={e => updateFeatures({ enableDocumentUpload: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -560,7 +804,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableGeminiDiagnosis}
                   onChange={e => updateFeatures({ enableGeminiDiagnosis: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -579,7 +823,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableQrScanning}
                   onChange={e => updateFeatures({ enableQrScanning: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -598,7 +842,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableWhatsAppDirectDispatch}
                   onChange={e => updateFeatures({ enableWhatsAppDirectDispatch: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -617,7 +861,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableCostTracking}
                   onChange={e => updateFeatures({ enableCostTracking: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -636,7 +880,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.requirePhotoBeforeSubmit}
                   onChange={e => updateFeatures({ requirePhotoBeforeSubmit: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -655,7 +899,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.requireVoiceBeforeSubmit}
                   onChange={e => updateFeatures({ requireVoiceBeforeSubmit: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -674,7 +918,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                   type="checkbox" 
                   checked={settings.features.enableSlaAlerts}
                   onChange={e => updateFeatures({ enableSlaAlerts: e.target.checked })}
-                  className="w-4 h-4 accent-teal cursor-pointer mt-1"
+                  className="w-4 h-4 accent-teal-800 cursor-pointer mt-1"
                 />
               </div>
 
@@ -751,7 +995,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 1: GOOGLE INTEGRATIONS & CLOUD ENDPOINTS (NO-CODE) */}
+      {/* TAB: GOOGLE INTEGRATIONS & CLOUD ENDPOINTS (NO-CODE) */}
       {/* ==================================================================== */}
       {activeTab === 'google_integrations' && (
         <AdminGoogleIntegrations 
@@ -761,41 +1005,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 2: LOCATIONS DATABASE (DYNAMIC CRUD) */}
-      {/* ==================================================================== */}
-      {activeTab === 'locations' && (
-        <AdminLocationsManager
-          locations={locations}
-          onUpdateLocations={handleUpdateLocations}
-          isAr={isAr}
-        />
-      )}
-
-      {/* ==================================================================== */}
-      {/* TAB 3: TECHNICIANS DATABASE (DYNAMIC CRUD & WHATSAPP) */}
-      {/* ==================================================================== */}
-      {activeTab === 'techs' && (
-        <AdminTechsManager
-          technicians={technicians}
-          onUpdateTechnicians={handleUpdateTechnicians}
-          isAr={isAr}
-        />
-      )}
-
-      {/* ==================================================================== */}
-      {/* TAB 4: ASSETS & MACHINES DATABASE (DYNAMIC CRUD & QR CODES) */}
-      {/* ==================================================================== */}
-      {activeTab === 'assets_db' && (
-        <AdminAssetsManager
-          assets={assets}
-          locations={locations}
-          onUpdateAssets={handleUpdateAssets}
-          isAr={isAr}
-        />
-      )}
-
-      {/* ==================================================================== */}
-      {/* TAB 5: SYSTEM & SLA SETTINGS */}
+      {/* TAB: SYSTEM & SLA SETTINGS */}
       {/* ==================================================================== */}
       {activeTab === 'settings' && (
         <section className="space-y-4 animate-in fade-in duration-150">
@@ -813,7 +1023,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
               <button 
                 type="button" 
                 onClick={() => handleTriggerSave()}
-                className="px-4 py-2 accent-teal text-white font-bold rounded-xs text-xs transition shadow-xs flex items-center gap-1.5"
+                className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white font-bold rounded-xs text-xs transition shadow-xs flex items-center gap-1.5"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{isAr ? 'حفظ ومزامنة السياسات' : 'Save Policies'}</span>
@@ -951,10 +1161,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                     <p className="text-[11px] text-slate-500">إرسال إشعار فوري لمدير الصيانة في حال تجاوز 75% من وقت الـ SLA المحدد للبلاغ.</p>
                   </div>
                   <input 
-                    type="checkbox"
+                    type="checkbox" 
                     checked={settings.sla.autoEscalate}
                     onChange={e => updateSla({ autoEscalate: e.target.checked })}
-                    className="w-4 h-4 accent-teal cursor-pointer"
+                    className="w-4 h-4 accent-teal-800 cursor-pointer"
                   />
                 </div>
               </div>
@@ -963,7 +1173,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
                 <button 
                   type="button" 
                   onClick={() => handleTriggerSave()}
-                  className="px-6 py-2.5 accent-teal text-white font-bold rounded-xs text-xs transition shadow-xs flex items-center gap-1.5"
+                  className="px-6 py-2.5 bg-teal-800 hover:bg-teal-900 text-white font-bold rounded-xs text-xs transition shadow-xs flex items-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   <span>حفظ التغييرات ومزامنة السياسات</span>
@@ -975,35 +1185,57 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 6: CSV EXPORT */}
+      {/* TAB: CSV EXPORT */}
       {/* ==================================================================== */}
       {activeTab === 'export' && (
         <section className="space-y-4 animate-in fade-in duration-150">
-          <div className="bg-white border-geometric rounded-xs p-6 space-y-4 max-w-xl">
-            <h3 className="font-bold text-base text-slate-900">تصدير جداول البيانات (Export to CSV)</h3>
+          <div className="bg-white border-geometric rounded-xs p-6 space-y-4 max-w-2xl">
+            <h3 className="font-bold text-base text-slate-900">تصدير كافة جداول قاعدة البيانات (Export to CSV)</h3>
             <p className="text-xs text-slate-500">تحميل أي جدول من جداول قاعدة البيانات كملف CSV نظيف للتقارير الإدارية والتحليل الإحصائي.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <button 
-                onClick={() => handleDownloadMockCsv('WoHeaders')}
+                onClick={() => handleDownloadMockCsv('Custodies')}
                 className="p-3 bg-slate-50 hover:bg-slate-100 border-geometric rounded-xs text-right transition flex items-center justify-between"
               >
                 <div>
-                  <span className="font-bold text-xs block text-slate-900">سجل البلاغات (WoHeaders)</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">شاملاً الـ GPS والصوت والتشخيص</span>
+                  <span className="font-bold text-xs block text-slate-900">العهد المالية والفنية (Custodies)</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">المستلمين، المبالغ، وحالة الصرف والتسوية</span>
                 </div>
-                <Download className="w-4 h-4 text-slate-600" />
+                <Download className="w-4 h-4 text-teal-700" />
               </button>
 
               <button 
-                onClick={() => handleDownloadMockCsv('Visits')}
+                onClick={() => handleDownloadMockCsv('BranchAudits')}
                 className="p-3 bg-slate-50 hover:bg-slate-100 border-geometric rounded-xs text-right transition flex items-center justify-between"
               >
                 <div>
-                  <span className="font-bold text-xs block text-slate-900">سجل الزيارات (Visits)</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">إحداثيات GPS وساعات العمل والقطع</span>
+                  <span className="font-bold text-xs block text-slate-900">أعطال وملاحظات الفروع (Branch Audits)</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">سجلات الفحص الدوري وخطة العمل</span>
                 </div>
-                <Download className="w-4 h-4 text-slate-600" />
+                <Download className="w-4 h-4 text-rose-700" />
+              </button>
+
+              <button 
+                onClick={() => handleDownloadMockCsv('Governance')}
+                className="p-3 bg-slate-50 hover:bg-slate-100 border-geometric rounded-xs text-right transition flex items-center justify-between"
+              >
+                <div>
+                  <span className="font-bold text-xs block text-slate-900">الهيكل الإداري ولجنة الحوكمة (Governance)</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">المسؤوليات ونسب الملكية والإشراف</span>
+                </div>
+                <Download className="w-4 h-4 text-blue-700" />
+              </button>
+
+              <button 
+                onClick={() => handleDownloadMockCsv('Decisions')}
+                className="p-3 bg-slate-50 hover:bg-slate-100 border-geometric rounded-xs text-right transition flex items-center justify-between"
+              >
+                <div>
+                  <span className="font-bold text-xs block text-slate-900">القرارات الإدارية والتنظيمية (Decisions)</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">سجل التوجيهات والسياسات الملزمة</span>
+                </div>
+                <Download className="w-4 h-4 text-amber-700" />
               </button>
 
               <button 
@@ -1033,7 +1265,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ lang }) => {
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 7: AI LOGS */}
+      {/* TAB: AI LOGS */}
       {/* ==================================================================== */}
       {activeTab === 'ailogs' && (
         <section className="space-y-4 animate-in fade-in duration-150">

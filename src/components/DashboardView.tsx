@@ -413,7 +413,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <DollarSign className="w-3.5 h-3.5 text-teal-600" />
           </div>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">{stats.monthCost.toLocaleString()}</span>
+            <span className="text-2xl font-black text-slate-900">{(stats?.monthCost ?? 0).toLocaleString()}</span>
             <span className="text-[10px] font-mono text-teal-800 font-bold">EGP</span>
           </div>
           <div className="mt-2 text-[10px] text-slate-500 font-bold">{isAr ? 'المصنعية وقطع الغيار' : 'Parts & Labor'}</div>

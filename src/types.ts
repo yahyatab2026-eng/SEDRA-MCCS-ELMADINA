@@ -183,6 +183,8 @@ export interface VisitRecord {
   depart_lng: number;
   work_done: string;
   parts_used: string;
+  cost_parts?: number;
+  cost_labor?: number;
   notes: string;
   before_photo: string;
   after_photo: string;

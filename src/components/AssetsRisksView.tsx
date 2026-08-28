@@ -12,20 +12,25 @@ import {
   Gauge, 
   Zap, 
   Activity,
-  Flame
+  Flame,
+  QrCode,
+  Printer
 } from 'lucide-react';
 import { initialAssets, initialRisks } from '../data/seedData';
 import { AssetRecord, RiskRecord } from '../types';
+import { AssetQrCodeModal } from './AssetQrCodeModal';
 
 interface AssetsRisksViewProps {
   lang: 'ar' | 'en';
+  onReportIncident?: (asset?: AssetRecord) => void;
 }
 
-export const AssetsRisksView: React.FC<AssetsRisksViewProps> = ({ lang }) => {
+export const AssetsRisksView: React.FC<AssetsRisksViewProps> = ({ lang, onReportIncident }) => {
   const isAr = lang === 'ar';
   const [subTab, setSubTab] = useState<'assets' | 'risks'>('assets');
   const [assets] = useState<AssetRecord[]>(initialAssets);
   const [risks] = useState<RiskRecord[]>(initialRisks);
+  const [selectedAssetForQr, setSelectedAssetForQr] = useState<AssetRecord | null>(null);
   
   const [assetSearch, setAssetSearch] = useState('');
   const [assetCategoryFilter, setAssetCategoryFilter] = useState('all');
@@ -35,8 +40,8 @@ export const AssetsRisksView: React.FC<AssetsRisksViewProps> = ({ lang }) => {
     const matchesSearch = 
       a.name.toLowerCase().includes(assetSearch.toLowerCase()) ||
       a.id.toLowerCase().includes(assetSearch.toLowerCase()) ||
-      a.location.toLowerCase().includes(assetSearch.toLowerCase()) ||
-      (a.model && a.model.toLowerCase().includes(assetSearch.toLowerCase()));
+      ((a.location_name || a.location_id || (a as any).location || '').toLowerCase().includes(assetSearch.toLowerCase())) ||
+      ((a.model || '').toLowerCase().includes(assetSearch.toLowerCase()));
 
     const matchesCategory = assetCategoryFilter === 'all' || a.category === assetCategoryFilter;
     return matchesSearch && matchesCategory;
@@ -184,10 +189,17 @@ export const AssetsRisksView: React.FC<AssetsRisksViewProps> = ({ lang }) => {
                     )}
                   </div>
 
-                  {/* Maintenance Dates */}
+                  {/* Maintenance Dates & QR Action */}
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500 font-mono">
                     <span>آخر فحص: {asset.lastService || '2026-08-10'}</span>
-                    <span className="font-bold text-slate-800">دورية وقائية</span>
+                    <button
+                      onClick={() => setSelectedAssetForQr(asset)}
+                      className="px-2 py-1 bg-slate-100 hover:bg-teal-50 text-teal-800 hover:text-teal-900 border border-slate-200 rounded font-bold flex items-center gap-1 transition-colors"
+                      title="عرض وطباعة باركود الأصل"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>QR & ملصق</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -289,6 +301,17 @@ export const AssetsRisksView: React.FC<AssetsRisksViewProps> = ({ lang }) => {
           </div>
 
         </div>
+      )}
+
+      {/* Asset QR Code Modal */}
+      {selectedAssetForQr && (
+        <AssetQrCodeModal
+          asset={selectedAssetForQr}
+          onClose={() => setSelectedAssetForQr(null)}
+          onReportIncident={(asset) => {
+            if (onReportIncident) onReportIncident(asset);
+          }}
+        />
       )}
 
     </div>

@@ -46,22 +46,24 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
   const [selectedBranch, setSelectedBranch] = useState('all');
 
   const filteredInventory = inventory.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.location.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.itemCode || item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.location || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredAudits = audits.filter(a => {
-    const matchesBranch = selectedBranch === 'all' || a.branch === selectedBranch;
+    const branchName = a.branchName || '';
+    const matchesBranch = selectedBranch === 'all' || branchName === selectedBranch;
+    const defsJoined = Array.isArray(a.deficiencies) ? a.deficiencies.join(' ') : '';
     const matchesSearch = searchTerm === '' || 
-      a.branch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.defects.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.actionTaken.toLowerCase().includes(searchTerm.toLowerCase());
+      branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      defsJoined.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (a.summary || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesBranch && matchesSearch;
   });
 
-  const uniqueBranches = Array.from(new Set(audits.map(a => a.branch)));
+  const uniqueBranches = Array.from(new Set(audits.map(a => a.branchName).filter(Boolean)));
 
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
@@ -154,36 +156,46 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
                   <th className="p-3">التصنيف</th>
                   <th className="p-3">الموقع التخزيني</th>
                   <th className="p-3 text-center">الرصيد الفعلي</th>
-                  <th className="p-3 text-center">الحد الأدنى</th>
-                  <th className="p-3">سعر الوحدة</th>
+                  <th className="p-3 text-center">حد إعادة الطلب</th>
+                  <th className="p-3">الأولوية</th>
                   <th className="p-3">حالة الرصيد</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-700">
                 {filteredInventory.map(item => {
-                  const isLow = item.currentStock <= item.minStock;
+                  const isCritical = item.status === 'Critical Shortage' || (item.balance <= 0);
+                  const isLow = item.status === 'Low Stock' || (item.reorderLevel !== undefined && item.balance <= item.reorderLevel);
                   return (
                     <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-mono font-bold text-slate-900">{item.code}</td>
-                      <td className="p-3 font-bold text-slate-900">{item.name}</td>
+                      <td className="p-3 font-mono font-bold text-slate-900">{item.itemCode || item.id}</td>
+                      <td className="p-3 font-bold text-slate-900">
+                        <div>{item.name}</div>
+                        {item.notes && <div className="text-[11px] text-slate-500 font-normal">{item.notes}</div>}
+                      </td>
                       <td className="p-3 text-slate-600">{item.category}</td>
                       <td className="p-3 font-medium text-slate-800">{item.location}</td>
                       <td className="p-3 text-center font-mono font-bold text-slate-900">
-                        {item.currentStock} {item.unit}
+                        {item.balance ?? 0} {item.unit || 'قطعة'}
                       </td>
                       <td className="p-3 text-center font-mono text-slate-500">
-                        {item.minStock} {item.unit}
+                        {item.reorderLevel ?? 1} {item.unit || 'قطعة'}
                       </td>
-                      <td className="p-3 font-mono font-bold text-slate-800">
-                        {item.unitCostEgp.toLocaleString()} EGP
+                      <td className="p-3 font-mono font-bold">
+                        <span className={`px-2 py-0.5 rounded-xs text-[10px] ${
+                          item.priority === 'High' ? 'bg-rose-50 text-rose-800 font-black' : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {item.priority || 'Normal'}
+                        </span>
                       </td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded-xs text-[10px] font-bold border ${
-                          isLow 
-                            ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse' 
+                          isCritical
+                            ? 'bg-rose-100 text-rose-900 border-rose-400 animate-pulse font-black'
+                            : isLow 
+                            ? 'bg-amber-100 text-amber-900 border-amber-300' 
                             : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         }`}>
-                          {isLow ? 'طلب شراء عاجل ⚠️' : 'متوفر بالمخزن ✓'}
+                          {isCritical ? 'نقص حرج / شراء عاجل ⚠️' : isLow ? 'رصيد منخفض ⚠️' : 'متوفر بالمخزن ✓'}
                         </span>
                       </td>
                     </tr>
@@ -213,18 +225,18 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
 
                   <h3 className="font-bold text-sm text-slate-900 mt-2.5 flex items-center gap-1.5">
                     <UserCheck className="w-4 h-4 text-teal-600" />
-                    <span>{c.holder}</span>
+                    <span>{c.custodian}</span>
                   </h3>
-                  <div className="text-xs text-slate-600 font-medium mt-0.5">{c.role}</div>
+                  <div className="text-xs text-slate-600 font-medium mt-0.5">{c.location}</div>
 
                   <div className="mt-3 bg-slate-50 p-2.5 rounded-xs border border-slate-200 space-y-1 font-mono text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">إجمالي العهدة:</span>
-                      <span className="font-bold text-slate-900">{c.totalLimit.toLocaleString()} EGP</span>
+                      <span className="text-slate-500">قيمة العهدة:</span>
+                      <span className="font-bold text-slate-900">{(c.amount ?? 0).toLocaleString()} EGP</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">الرصيد المتبقي:</span>
-                      <span className="font-bold text-emerald-700">{c.balance.toLocaleString()} EGP</span>
+                      <span className="text-slate-500">الجهة / الشركة:</span>
+                      <span className="font-bold text-slate-700 text-[11px] truncate max-w-[140px]">{c.org}</span>
                     </div>
                   </div>
 
@@ -234,7 +246,7 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
                 </div>
 
                 <div className="mt-4 pt-2.5 border-t border-slate-200 text-[10px] text-slate-500 font-mono flex justify-between">
-                  <span>آخر تسوية: {c.lastSettlement}</span>
+                  <span>التاريخ: {c.date || '—'}</span>
                   <span className="font-bold text-teal-700">معتمدة محاسبياً</span>
                 </div>
               </div>
@@ -257,7 +269,7 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
                 onChange={e => setSelectedBranch(e.target.value)}
                 className="px-3 py-1.5 text-xs border-geometric rounded-xs bg-slate-50 font-bold outline-none"
               >
-                <option value="all">كافة الفروع الـ 16</option>
+                <option value="all">كافة الفروع والمنشآت</option>
                 {uniqueBranches.map(b => (
                   <option key={b} value={b}>{b}</option>
                 ))}
@@ -275,28 +287,32 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
                 <div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                     <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-xs">{audit.id}</span>
-                    <span className="font-mono text-[11px] text-slate-500">{audit.date}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-teal-50 text-teal-800 border border-teal-300">{audit.status}</span>
                   </div>
 
                   <h3 className="font-bold text-sm text-slate-900 mt-2 flex items-center gap-1.5">
                     <Building className="w-4 h-4 text-teal-600" />
-                    <span>{audit.branch}</span>
+                    <span>{audit.branchName}</span>
                   </h3>
-                  <div className="text-[11px] text-slate-500 font-mono font-medium">المهندس الفاحص: {audit.auditor}</div>
+                  <div className="text-[11px] text-slate-500 font-mono font-medium">مسؤول البلاغ: {audit.reportedBy || 'مدير الفرع'}</div>
 
                   <div className="mt-2.5 bg-rose-50/70 p-2.5 rounded-xs border border-rose-200 text-xs text-rose-950">
-                    <span className="font-bold block mb-1">الملاحظات والأعطال المرصودة:</span>
-                    <p className="leading-relaxed">{audit.defects}</p>
+                    <span className="font-bold block mb-1">الملاحظات والأعطال المرصودة ({audit.itemsCount || audit.deficiencies?.length || 0} بنود):</span>
+                    <ul className="list-disc list-inside space-y-0.5 leading-relaxed text-[11px]">
+                      {audit.deficiencies?.map((d, i) => (
+                        <li key={i}>{d}</li>
+                      ))}
+                    </ul>
                   </div>
 
                   <div className="mt-2 bg-emerald-50/70 p-2.5 rounded-xs border border-emerald-300 text-xs text-emerald-950">
-                    <span className="font-bold block mb-1">الإجراء المتخذ / التوصية:</span>
-                    <p className="leading-relaxed">{audit.actionTaken}</p>
+                    <span className="font-bold block mb-1">الملخص وخطة العمل:</span>
+                    <p className="leading-relaxed text-[11px]">{audit.summary}</p>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500 font-mono">حالة المتابعة:</span>
+                  <span className="text-slate-500 font-mono">الجهة: {audit.org}</span>
                   <span className="px-2 py-0.5 rounded-xs font-bold bg-slate-100 text-slate-800 border border-slate-300">
                     {audit.status}
                   </span>
@@ -328,7 +344,8 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
                     <span className="font-bold text-slate-900 text-sm">{gov.name}</span>
                     <span className="text-[10px] font-mono font-bold bg-teal-50 text-teal-800 border border-teal-300 px-2 py-0.5 rounded-xs">{gov.role}</span>
                   </div>
-                  <p className="text-slate-600 leading-relaxed pt-1">{gov.responsibilities}</p>
+                  <p className="text-slate-600 leading-relaxed pt-1">{gov.scope}</p>
+                  {gov.ownership && <div className="text-[10px] text-slate-500 font-mono pt-1">نطاق الملكية / الإشراف: {gov.ownership}</div>}
                 </div>
               ))}
             </div>
@@ -350,10 +367,10 @@ export const InventoryGovernanceView: React.FC<InventoryGovernanceViewProps> = (
                   </div>
                   <h4 className="font-bold text-slate-900">{dec.title}</h4>
                   <p className="text-slate-700 leading-relaxed bg-white p-2.5 rounded-xs border border-slate-200">
-                    {dec.summary}
+                    {dec.scope}
                   </p>
                   <div className="flex items-center justify-between pt-1 text-[10px] text-slate-500">
-                    <span>الجهة المصدرة: <strong className="text-slate-800">{dec.issuedBy}</strong></span>
+                    <span>الجهة المصدرة: <strong className="text-slate-800">{dec.author}</strong></span>
                     <span className="font-bold text-emerald-700">ساري ومُلزم لجميع الفروع</span>
                   </div>
                 </div>

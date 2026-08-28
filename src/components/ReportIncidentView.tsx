@@ -41,8 +41,11 @@ import {
   initialSuppliers, 
   initialInventory 
 } from '../data/seedData';
+import { apiClient } from '../services/api';
 import { WorkOrder, Severity, AssetRecord } from '../types';
 import { useSystemSettings } from '../context/SystemSettingsContext';
+import { compressImage } from '../utils/imageCompression';
+import { syncQueue } from '../services/syncQueue';
 
 interface ReportIncidentViewProps {
   lang: 'ar' | 'en';
@@ -363,40 +366,20 @@ export const ReportIncidentView: React.FC<ReportIncidentViewProps> = ({
   };
 
   // Handle Photo Compression / Upload
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setPhotoName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxDim = 1024;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height && width > maxDim) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else if (height > maxDim) {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL('image/jpeg', 0.8);
-          setPhotoBase64(compressed);
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 });
+      setPhotoBase64(compressed);
+    } catch (err) {
+      console.warn('Image compression fallback', err);
+      const reader = new FileReader();
+      reader.onload = (event) => setPhotoBase64(event.target?.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   // Handle Video Upload
@@ -423,41 +406,32 @@ export const ReportIncidentView: React.FC<ReportIncidentViewProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Trigger Gemini AI Diagnosis
-  const handleRunAiDiagnosis = () => {
+  // Trigger Gemini AI Diagnosis via Backend API
+  const handleRunAiDiagnosis = async () => {
     setIsAiDiagnosing(true);
-    setTimeout(() => {
-      setIsAiDiagnosing(false);
-      let root = 'احتمال وجود خلل ميكانيكي أو عطل كهربائي في دوائر التغذية.';
-      let safety = 'فصل قاطع التيار عن المعدة فوراً لتجنب تفاقم العطل.';
-      let parts = 'قطع غيار قياسية، كابلات، وحشوات موانع تسرب.';
-      let vendor = 'الإدارة الهندسية المركزية (فريق الصيانة السريعة)';
-
-      if (category.includes('تبريد') || description.includes('فريزر') || description.includes('حرارة')) {
-        root = 'عطل في مروحة المبخر أو نقص شحنة الفريون مع انسداد فلاتر الكوندنسر.';
-        safety = 'عدم فتح أبواب التبريد للحفاظ على البضائع، ومراقبة العداد كل 30 دقيقة.';
-        parts = 'فريون R404A، تايمر ديفروست، فلتر دراير دانفوس Danfoss';
-        vendor = 'شركة صيانة التبريد المعتمدة (ت: 01006543210)';
-      } else if (category.includes('ألبان') || description.includes('بسترة') || description.includes('مجنس')) {
-        root = 'انسداد في صمامات الضغط العالي للمجنس أو تآكل أورنجات منع التسريب.';
-        safety = 'إيقاف ضخ الحليب فوراً وتصريف الضغط الهيدروليكي بأمان.';
-        parts = 'جوانات سيلكون غذائي، بلوف ضغط عالي، زيت هيدروليك 68';
-        vendor = 'شركة GEMAK وGEA لخطوط الألبان (ت: 01223344556)';
-      } else if (category.includes('غلايات') || description.includes('بخار')) {
-        root = 'تراكم ترسبات كلسية على حساس اللهب أو انخفاض مستوى مياه التغذية.';
-        safety = 'غلق محبس البخار الرئيسي والتحقق من مقياس ضغط الغلاية لا يتجاوز 6 بار.';
-        parts = 'شمعة إشعال، جوان غلاية، طلمبة تغذية Grundfos';
-        vendor = 'مؤسسة الأهرام لصيانة الغلايات البخارية (ت: 01112233445)';
-      }
+    try {
+      const assetLabel = assetMode === 'catalog' && selectedAssetObj ? selectedAssetObj.name : manualAssetName || 'معدة';
+      const result = await apiClient.runAiDiagnosis({
+        category,
+        description,
+        locationName: currentLocation?.name || 'فرع سيدره',
+        assetName: assetLabel,
+        severity,
+        photoBase64: photoBase64 || undefined
+      });
 
       setAiDiagnosisResult({
-        rootCause: root,
-        immediateSafetyAction: safety,
-        recommendedParts: parts,
-        recommendedVendor: vendor,
-        confidence: 0.95
+        rootCause: result.rootCause,
+        immediateSafetyAction: result.safetyMeasures,
+        recommendedParts: result.recommendedParts,
+        recommendedVendor: result.recommendedVendorOrTeam,
+        confidence: (result.aiConfidence || 95) / 100
       });
-    }, 1000);
+    } catch (err) {
+      console.error('Diagnosis error:', err);
+    } finally {
+      setIsAiDiagnosing(false);
+    }
   };
 
   // Submit Defect Report

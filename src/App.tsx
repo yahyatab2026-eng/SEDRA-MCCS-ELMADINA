@@ -11,6 +11,7 @@ import { GasExportModal } from './components/GasExportModal';
 import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
 import { initialWorkOrders } from './data/seedData';
 import { WorkOrder } from './types';
+import { apiClient } from './services/api';
 import { SystemSettingsProvider, useSystemSettings } from './context/SystemSettingsContext';
 
 function MainAppContent() {
@@ -42,12 +43,24 @@ function MainAppContent() {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   }, [lang]);
 
+  // Load from backend API on mount
+  useEffect(() => {
+    apiClient.getWorkOrders().then(remoteWos => {
+      if (Array.isArray(remoteWos) && remoteWos.length > 0) {
+        setWorkOrders(remoteWos);
+        localStorage.setItem('cmms_work_orders', JSON.stringify(remoteWos));
+      }
+    }).catch(err => console.warn('Could not fetch work orders from API:', err));
+  }, []);
+
   const handleWorkOrderCreated = (newWo: WorkOrder) => {
     setWorkOrders(prev => {
       const updated = [newWo, ...prev];
       localStorage.setItem('cmms_work_orders', JSON.stringify(updated));
       return updated;
     });
+    // Also send to backend
+    apiClient.createWorkOrder(newWo).catch(e => console.warn('Sync new WO to backend error:', e));
   };
 
   const handleNavigateToVisit = (woId?: string) => {

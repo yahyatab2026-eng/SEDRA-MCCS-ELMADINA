@@ -23,11 +23,34 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-  Table as TableIcon
+  Table as TableIcon,
+  Wallet,
+  ClipboardCheck,
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
-import { LocationItem, TechnicianItem, AssetRecord, SupplierItem, InventoryItem } from '../../types';
+import { 
+  LocationItem, 
+  TechnicianItem, 
+  AssetRecord, 
+  SupplierItem, 
+  InventoryItem, 
+  CustodyRecord, 
+  BranchAuditRecord, 
+  GovernanceRecord, 
+  AdminDecision 
+} from '../../types';
 
-export type TableEntityKey = 'locations' | 'technicians' | 'assets' | 'suppliers' | 'inventory';
+export type TableEntityKey = 
+  | 'locations' 
+  | 'technicians' 
+  | 'assets' 
+  | 'suppliers' 
+  | 'inventory' 
+  | 'custodies' 
+  | 'audits' 
+  | 'governance' 
+  | 'decisions';
 
 interface ColumnDef<T> {
   key: keyof T | string;
@@ -48,11 +71,19 @@ interface AdminDynamicTableEditorProps {
   assets: AssetRecord[];
   suppliers: SupplierItem[];
   inventory: InventoryItem[];
+  custodies: CustodyRecord[];
+  audits: BranchAuditRecord[];
+  governance: GovernanceRecord[];
+  decisions: AdminDecision[];
   onUpdateLocations: (locs: LocationItem[]) => void;
   onUpdateTechnicians: (techs: TechnicianItem[]) => void;
   onUpdateAssets: (assets: AssetRecord[]) => void;
   onUpdateSuppliers: (supps: SupplierItem[]) => void;
   onUpdateInventory: (inv: InventoryItem[]) => void;
+  onUpdateCustodies: (custodies: CustodyRecord[]) => void;
+  onUpdateAudits: (audits: BranchAuditRecord[]) => void;
+  onUpdateGovernance: (gov: GovernanceRecord[]) => void;
+  onUpdateDecisions: (decs: AdminDecision[]) => void;
 }
 
 export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = ({
@@ -62,11 +93,19 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
   assets,
   suppliers,
   inventory,
+  custodies,
+  audits,
+  governance,
+  decisions,
   onUpdateLocations,
   onUpdateTechnicians,
   onUpdateAssets,
   onUpdateSuppliers,
-  onUpdateInventory
+  onUpdateInventory,
+  onUpdateCustodies,
+  onUpdateAudits,
+  onUpdateGovernance,
+  onUpdateDecisions
 }) => {
   const [selectedEntity, setSelectedEntity] = useState<TableEntityKey>('locations');
   const [searchQuery, setSearchQuery] = useState('');
@@ -254,6 +293,91 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
     }
   ];
 
+  const custodiesColumns: ColumnDef<CustodyRecord>[] = [
+    { key: 'id', labelAr: 'كود العهدة', labelEn: 'Custody ID', type: 'text', readOnly: true, width: 'w-28' },
+    { key: 'custodian', labelAr: 'المستلم / صاحب العهدة', labelEn: 'Custodian', type: 'text', required: true },
+    { key: 'amount', labelAr: 'القيمة (EGP)', labelEn: 'Amount (EGP)', type: 'number', required: true, width: 'w-28' },
+    { key: 'location', labelAr: 'الموقع / الفرع', labelEn: 'Location', type: 'text' },
+    { key: 'org', labelAr: 'الجهة / الشركة', labelEn: 'Org', type: 'text' },
+    { key: 'purpose', labelAr: 'الغرض وبيان الصرف', labelEn: 'Purpose', type: 'text' },
+    { 
+      key: 'status', 
+      labelAr: 'حالة العهدة', 
+      labelEn: 'Status', 
+      type: 'select',
+      options: [
+        { value: 'In Progress', labelAr: 'قيد التنفيذ (In Progress)', labelEn: 'In Progress' },
+        { value: 'Completed', labelAr: 'مكتملة ومسواة (Completed)', labelEn: 'Completed' },
+        { value: 'Pending Settlement', labelAr: 'بانتظار التسوية (Pending)', labelEn: 'Pending Settlement' }
+      ],
+      width: 'w-36'
+    },
+    { key: 'date', labelAr: 'تاريخ الصرف', labelEn: 'Date', type: 'text', width: 'w-28' },
+    { key: 'authorizedBy', labelAr: 'جهة الاعتماد', labelEn: 'Authorized By', type: 'text' }
+  ];
+
+  const auditsColumns: ColumnDef<BranchAuditRecord>[] = [
+    { key: 'id', labelAr: 'كود الفحص', labelEn: 'Audit ID', type: 'text', readOnly: true, width: 'w-24' },
+    { key: 'branchName', labelAr: 'اسم الفرع / المنشأة', labelEn: 'Branch Name', type: 'text', required: true },
+    { key: 'org', labelAr: 'الجهة التابع لها', labelEn: 'Org', type: 'text' },
+    { key: 'reportedBy', labelAr: 'مسؤول البلاغ', labelEn: 'Reported By', type: 'text' },
+    { 
+      key: 'status', 
+      labelAr: 'حالة المتابعة', 
+      labelEn: 'Status', 
+      type: 'select',
+      options: [
+        { value: 'In Progress', labelAr: 'قيد المتابعة (In Progress)', labelEn: 'In Progress' },
+        { value: 'Action Plan Generated', labelAr: 'تمت الخطة (Plan Ready)', labelEn: 'Action Plan Generated' },
+        { value: 'Active', labelAr: 'نشط (Active)', labelEn: 'Active' }
+      ],
+      width: 'w-36'
+    },
+    { key: 'itemsCount', labelAr: 'عدد البنود', labelEn: 'Items Count', type: 'number', width: 'w-24' },
+    { key: 'summary', labelAr: 'الملخص وخطة العمل', labelEn: 'Action Plan / Summary', type: 'text' }
+  ];
+
+  const governanceColumns: ColumnDef<GovernanceRecord>[] = [
+    { key: 'id', labelAr: 'كود السجل', labelEn: 'ID', type: 'text', readOnly: true, width: 'w-24' },
+    { key: 'name', labelAr: 'الاسم الكامل / الصفة', labelEn: 'Name', type: 'text', required: true },
+    { key: 'role', labelAr: 'المسمى / المنصب', labelEn: 'Role', type: 'text', required: true },
+    { key: 'ownership', labelAr: 'نطاق الملكية / الإشراف', labelEn: 'Ownership', type: 'text' },
+    { key: 'scope', labelAr: 'المسؤوليات ونطاق الحوكمة', labelEn: 'Scope & Responsibilities', type: 'text' },
+    { 
+      key: 'status', 
+      labelAr: 'الحالة', 
+      labelEn: 'Status', 
+      type: 'select',
+      options: [
+        { value: 'Active', labelAr: 'نشط (Active)', labelEn: 'Active' },
+        { value: 'Advisory', labelAr: 'استشاري (Advisory)', labelEn: 'Advisory' },
+        { value: 'Inactive', labelAr: 'غير نشط (Inactive)', labelEn: 'Inactive' }
+      ],
+      width: 'w-28'
+    }
+  ];
+
+  const decisionsColumns: ColumnDef<AdminDecision>[] = [
+    { key: 'id', labelAr: 'رقم القرار', labelEn: 'Decision ID', type: 'text', readOnly: true, width: 'w-28' },
+    { key: 'title', labelAr: 'عنوان القرار الإداري', labelEn: 'Decision Title', type: 'text', required: true },
+    { key: 'author', labelAr: 'الجهة المصدرة', labelEn: 'Issued By', type: 'text' },
+    { key: 'date', labelAr: 'تاريخ الإصدار', labelEn: 'Date', type: 'text', width: 'w-28' },
+    { key: 'effectiveDate', labelAr: 'تاريخ السريان', labelEn: 'Effective Date', type: 'text', width: 'w-28' },
+    { key: 'scope', labelAr: 'منطوق ونطاق القرار', labelEn: 'Scope / Directive', type: 'text' },
+    { 
+      key: 'status', 
+      labelAr: 'الحالة', 
+      labelEn: 'Status', 
+      type: 'select',
+      options: [
+        { value: 'Active', labelAr: 'ساري ومُلزم (Active)', labelEn: 'Active' },
+        { value: 'Under Review', labelAr: 'قيد المراجعة (Review)', labelEn: 'Under Review' },
+        { value: 'Archived', labelAr: 'مؤرشف (Archived)', labelEn: 'Archived' }
+      ],
+      width: 'w-28'
+    }
+  ];
+
   // -------------------------------------------------------------
   // CURRENT ACTIVE DATA AND SCHEMA
   // -------------------------------------------------------------
@@ -294,6 +418,34 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
           entityLabel: isAr ? 'المخزون وقطع الغيار' : 'Inventory & Spare Parts',
           icon: <Package className="w-4 h-4 text-emerald-700" />
         };
+      case 'custodies':
+        return {
+          currentData: custodies,
+          currentColumns: custodiesColumns as ColumnDef<any>[],
+          entityLabel: isAr ? 'العهد المالية والفنية' : 'Custodies & Cash Advances',
+          icon: <Wallet className="w-4 h-4 text-teal-700" />
+        };
+      case 'audits':
+        return {
+          currentData: audits,
+          currentColumns: auditsColumns as ColumnDef<any>[],
+          entityLabel: isAr ? 'ملاحظات وأعطال الفروع' : 'Branch Deficiencies & Audits',
+          icon: <ClipboardCheck className="w-4 h-4 text-rose-700" />
+        };
+      case 'governance':
+        return {
+          currentData: governance,
+          currentColumns: governanceColumns as ColumnDef<any>[],
+          entityLabel: isAr ? 'الهيكل الإداري ولجنة الحوكمة' : 'Governance Structure',
+          icon: <ShieldCheck className="w-4 h-4 text-blue-700" />
+        };
+      case 'decisions':
+        return {
+          currentData: decisions,
+          currentColumns: decisionsColumns as ColumnDef<any>[],
+          entityLabel: isAr ? 'سجل القرارات الإدارية والتنظيمية' : 'Administrative Decisions',
+          icon: <FileText className="w-4 h-4 text-amber-700" />
+        };
       default:
         return {
           currentData: [],
@@ -302,15 +454,31 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
           icon: null
         };
     }
-  }, [selectedEntity, locations, technicians, assets, suppliers, inventory, isAr]);
+  }, [
+    selectedEntity, 
+    locations, 
+    technicians, 
+    assets, 
+    suppliers, 
+    inventory, 
+    custodies, 
+    audits, 
+    governance, 
+    decisions, 
+    isAr
+  ]);
 
-  // Filtered rows by search query
+  // -------------------------------------------------------------
+  // FILTERED DATA
+  // -------------------------------------------------------------
   const filteredRows = useMemo(() => {
     if (!searchQuery.trim()) return currentData;
-    const q = searchQuery.toLowerCase().trim();
+    const q = searchQuery.toLowerCase();
+
     return currentData.filter((row: any) => {
       return Object.values(row).some(val => {
         if (val === null || val === undefined) return false;
+        if (Array.isArray(val)) return val.join(' ').toLowerCase().includes(q);
         return String(val).toLowerCase().includes(q);
       });
     });
@@ -334,20 +502,32 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
     if (!editingRowId) return;
 
     if (selectedEntity === 'locations') {
-      const updated = locations.map(l => l.id === editingRowId ? { ...l, ...editingRowData } : l);
+      const updated = locations.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
       onUpdateLocations(updated);
     } else if (selectedEntity === 'technicians') {
-      const updated = technicians.map(t => t.id === editingRowId ? { ...t, ...editingRowData } : t);
+      const updated = technicians.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
       onUpdateTechnicians(updated);
     } else if (selectedEntity === 'assets') {
-      const updated = assets.map(a => a.id === editingRowId ? { ...a, ...editingRowData } : a);
+      const updated = assets.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
       onUpdateAssets(updated);
     } else if (selectedEntity === 'suppliers') {
-      const updated = suppliers.map(s => s.id === editingRowId ? { ...s, ...editingRowData } : s);
+      const updated = suppliers.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
       onUpdateSuppliers(updated);
     } else if (selectedEntity === 'inventory') {
-      const updated = inventory.map(i => i.id === editingRowId ? { ...i, ...editingRowData } : i);
+      const updated = inventory.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
       onUpdateInventory(updated);
+    } else if (selectedEntity === 'custodies') {
+      const updated = custodies.map(item => item.id === editingRowId ? { ...item, ...editingRowData, amount: Number(editingRowData.amount) || 0 } : item);
+      onUpdateCustodies(updated);
+    } else if (selectedEntity === 'audits') {
+      const updated = audits.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
+      onUpdateAudits(updated);
+    } else if (selectedEntity === 'governance') {
+      const updated = governance.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
+      onUpdateGovernance(updated);
+    } else if (selectedEntity === 'decisions') {
+      const updated = decisions.map(item => item.id === editingRowId ? { ...item, ...editingRowData } : item);
+      onUpdateDecisions(updated);
     }
 
     showFeedback('success', isAr ? 'تم حفظ وتحديث الصف مباشرة بنجاح!' : 'Row updated successfully!');
@@ -396,7 +576,32 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
       initialObj.balance = 10;
       initialObj.reorderLevel = 3;
       initialObj.unit = 'قطعة';
-      initialObj.status = 'متوفر';
+      initialObj.status = 'In Stock';
+    } else if (selectedEntity === 'custodies') {
+      generatedId = `CUSTODY-2026-00${custodies.length + 1}`;
+      initialObj.amount = 1500;
+      initialObj.status = 'In Progress';
+      initialObj.org = 'Sidera Confectionery (سيدرا)';
+      initialObj.location = locations[0]?.name || 'مصنع التجمع';
+      initialObj.date = new Date().toISOString().slice(0, 10);
+      initialObj.authorizedBy = 'الإدارة الهندسية';
+    } else if (selectedEntity === 'audits') {
+      generatedId = `AUD-${audits.length + 101}`;
+      initialObj.org = 'El Madina El Monawara (المدينة المنورة)';
+      initialObj.reportedBy = 'مدير الفرع';
+      initialObj.status = 'In Progress';
+      initialObj.itemsCount = 1;
+      initialObj.deficiencies = ['ملاحظة فحص أولي'];
+    } else if (selectedEntity === 'governance') {
+      generatedId = `GOV-00${governance.length + 1}`;
+      initialObj.status = 'Active';
+      initialObj.ownership = 'إشراف هندسي';
+    } else if (selectedEntity === 'decisions') {
+      generatedId = `DEC-2026-00${decisions.length + 1}`;
+      initialObj.status = 'Active';
+      initialObj.date = new Date().toISOString().slice(0, 10);
+      initialObj.effectiveDate = new Date().toISOString().slice(0, 10);
+      initialObj.author = 'Eng. Yahia Tarek Farag (Director of Engineering)';
     }
 
     initialObj.id = generatedId;
@@ -411,8 +616,14 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
   };
 
   const handleSaveAdd = () => {
-    if (!newRowData.name || String(newRowData.name).trim() === '') {
-      showFeedback('error', isAr ? 'يرجى إدخال اسم السجل المطلوب قبل الحفظ.' : 'Please provide a valid name before adding.');
+    const mainField = 
+      selectedEntity === 'custodies' ? newRowData.custodian :
+      selectedEntity === 'audits' ? newRowData.branchName :
+      selectedEntity === 'decisions' ? newRowData.title :
+      newRowData.name;
+
+    if (!mainField || String(mainField).trim() === '') {
+      showFeedback('error', isAr ? 'يرجى إدخال الحقل الإلزامي الرئيسي قبل الحفظ.' : 'Please provide the required main field before adding.');
       return;
     }
 
@@ -478,13 +689,61 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
         category: newRowData.category || 'عام',
         balance: Number(newRowData.balance) || 1,
         unit: newRowData.unit || 'قطعة',
-        reorderLevel: Number(newRowData.reorderLevel) || 3,
+        reorderLevel: Number(newRowData.reorderLevel) || 1,
         status: newRowData.status || 'In Stock'
       };
       onUpdateInventory([newInv, ...inventory]);
+    } else if (selectedEntity === 'custodies') {
+      const newCustody: CustodyRecord = {
+        id: newRowData.id || `CUSTODY-2026-00${Date.now().toString().slice(-3)}`,
+        title: `عهدة ${newRowData.custodian}`,
+        custodian: newRowData.custodian,
+        amount: Number(newRowData.amount) || 0,
+        location: newRowData.location || 'المصنع',
+        org: newRowData.org || 'Sidera Confectionery (سيدرا)',
+        purpose: newRowData.purpose || 'شراء خامات وقطع غيار',
+        status: newRowData.status || 'In Progress',
+        date: newRowData.date || new Date().toISOString().slice(0, 10),
+        authorizedBy: newRowData.authorizedBy || 'الإدارة الهندسية'
+      };
+      onUpdateCustodies([newCustody, ...custodies]);
+    } else if (selectedEntity === 'audits') {
+      const newAudit: BranchAuditRecord = {
+        id: newRowData.id || `AUD-${Date.now().toString().slice(-4)}`,
+        branchName: newRowData.branchName,
+        org: newRowData.org || 'El Madina El Monawara (المدينة المنورة)',
+        reportedBy: newRowData.reportedBy || 'مدير الفرع',
+        status: newRowData.status || 'In Progress',
+        itemsCount: Number(newRowData.itemsCount) || 1,
+        deficiencies: [newRowData.summary || 'فحص ومعاينة فنية'],
+        summary: newRowData.summary || 'تقرير فحص دوري'
+      };
+      onUpdateAudits([newAudit, ...audits]);
+    } else if (selectedEntity === 'governance') {
+      const newGov: GovernanceRecord = {
+        id: newRowData.id || `GOV-00${Date.now().toString().slice(-3)}`,
+        name: newRowData.name,
+        role: newRowData.role || 'عضو لجنة الحوكمة',
+        ownership: newRowData.ownership || 'نطاق إشرافي',
+        scope: newRowData.scope || 'حوكمة ومتابعة العمليات',
+        status: newRowData.status || 'Active'
+      };
+      onUpdateGovernance([newGov, ...governance]);
+    } else if (selectedEntity === 'decisions') {
+      const newDec: AdminDecision = {
+        id: newRowData.id || `DEC-2026-00${Date.now().toString().slice(-3)}`,
+        title: newRowData.title,
+        author: newRowData.author || 'Director of Engineering',
+        org: 'Group Enterprise',
+        date: newRowData.date || new Date().toISOString().slice(0, 10),
+        effectiveDate: newRowData.effectiveDate || new Date().toISOString().slice(0, 10),
+        scope: newRowData.scope || 'توجيه تنظيمي ملزم',
+        status: newRowData.status || 'Active'
+      };
+      onUpdateDecisions([newDec, ...decisions]);
     }
 
-    showFeedback('success', isAr ? 'تمت إضافة الصف الجديد إلى جدول البيانات بنجاح!' : 'New row added successfully!');
+    showFeedback('success', isAr ? 'تمت إضافة السجل الجديد بنجاح!' : 'New row added successfully!');
     setIsAddingNew(false);
     setNewRowData({});
   };
@@ -494,39 +753,53 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
   // -------------------------------------------------------------
   const handleDeleteRow = (id: string) => {
     if (selectedEntity === 'locations') {
-      onUpdateLocations(locations.filter(l => l.id !== id));
+      onUpdateLocations(locations.filter(i => i.id !== id));
     } else if (selectedEntity === 'technicians') {
-      onUpdateTechnicians(technicians.filter(t => t.id !== id));
+      onUpdateTechnicians(technicians.filter(i => i.id !== id));
     } else if (selectedEntity === 'assets') {
-      onUpdateAssets(assets.filter(a => a.id !== id));
+      onUpdateAssets(assets.filter(i => i.id !== id));
     } else if (selectedEntity === 'suppliers') {
-      onUpdateSuppliers(suppliers.filter(s => s.id !== id));
+      onUpdateSuppliers(suppliers.filter(i => i.id !== id));
     } else if (selectedEntity === 'inventory') {
       onUpdateInventory(inventory.filter(i => i.id !== id));
+    } else if (selectedEntity === 'custodies') {
+      onUpdateCustodies(custodies.filter(i => i.id !== id));
+    } else if (selectedEntity === 'audits') {
+      onUpdateAudits(audits.filter(i => i.id !== id));
+    } else if (selectedEntity === 'governance') {
+      onUpdateGovernance(governance.filter(i => i.id !== id));
+    } else if (selectedEntity === 'decisions') {
+      onUpdateDecisions(decisions.filter(i => i.id !== id));
     }
 
     setDeleteConfirmId(null);
-    showFeedback('success', isAr ? `تم حذف السجل ${id} نهائياً.` : `Row ${id} deleted.`);
+    showFeedback('success', isAr ? 'تم حذف السجل بنجاح!' : 'Row deleted successfully!');
   };
 
-  // Export Table Data as CSV
+  // -------------------------------------------------------------
+  // CSV EXPORT
+  // -------------------------------------------------------------
   const handleExportCsv = () => {
-    if (currentData.length === 0) return;
-    const headers = currentColumns.map(c => isAr ? c.labelAr : c.labelEn).join(',');
-    const rows = filteredRows.map(row => 
-      currentColumns.map(col => {
-        const val = row[col.key];
-        return typeof val === 'object' ? JSON.stringify(val).replace(/"/g, '""') : `"${val ?? ''}"`;
+    if (!currentData.length) return;
+    const headers = currentColumns.map(c => isAr ? c.labelAr : c.labelEn);
+    const rows = currentData.map((row: any) => 
+      currentColumns.map(c => {
+        const val = row[c.key as string];
+        if (val === null || val === undefined) return '""';
+        if (typeof val === 'string') return `"${val.replace(/"/g, '""')}"`;
+        if (Array.isArray(val)) return `"${val.join(' | ').replace(/"/g, '""')}"`;
+        return `"${val}"`;
       }).join(',')
     );
 
-    const csvContent = [headers, ...rows].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `Sidrah_Dynamic_${selectedEntity}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `cmms_${selectedEntity}_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -545,7 +818,7 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
               </h3>
               <p className="text-[11px] text-slate-500">
                 {isAr 
-                  ? 'عرض وتعديل فوري لخلايا الجداول، إضافة صفوف جديدة، وحذف السجلات مع الحفظ التلقائي في النظام.'
+                  ? 'عرض وتعديل فوري لكافة الجداول والعهد والأعطال والحوكمة مع الحفظ التلقائي في النظام.'
                   : 'Live inline editing, adding, and deleting table rows with direct state sync.'}
               </p>
             </div>
@@ -572,14 +845,18 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
           </div>
         </div>
 
-        {/* Entity Selector Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-3">
+        {/* Entity Selector Tabs (9 Tables) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-3">
           {[
             { id: 'locations', labelAr: `المواقع (${locations.length})`, labelEn: `Locations (${locations.length})`, icon: <Building2 className="w-3.5 h-3.5" /> },
             { id: 'technicians', labelAr: `الفنيون (${technicians.length})`, labelEn: `Technicians (${technicians.length})`, icon: <Users className="w-3.5 h-3.5" /> },
             { id: 'assets', labelAr: `الماكينات (${assets.length})`, labelEn: `Assets (${assets.length})`, icon: <Cpu className="w-3.5 h-3.5" /> },
             { id: 'suppliers', labelAr: `الموردون (${suppliers.length})`, labelEn: `Suppliers (${suppliers.length})`, icon: <Truck className="w-3.5 h-3.5" /> },
             { id: 'inventory', labelAr: `المخزون (${inventory.length})`, labelEn: `Inventory (${inventory.length})`, icon: <Package className="w-3.5 h-3.5" /> },
+            { id: 'custodies', labelAr: `العهد المالية (${custodies.length})`, labelEn: `Custodies (${custodies.length})`, icon: <Wallet className="w-3.5 h-3.5 text-teal-600" /> },
+            { id: 'audits', labelAr: `أعطال الفروع (${audits.length})`, labelEn: `Audits (${audits.length})`, icon: <ClipboardCheck className="w-3.5 h-3.5 text-rose-600" /> },
+            { id: 'governance', labelAr: `الهيكل والحوكمة (${governance.length})`, labelEn: `Governance (${governance.length})`, icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> },
+            { id: 'decisions', labelAr: `القرارات الإدارية (${decisions.length})`, labelEn: `Decisions (${decisions.length})`, icon: <FileText className="w-3.5 h-3.5 text-amber-600" /> }
           ].map(tab => (
             <button
               key={tab.id}
@@ -596,7 +873,7 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
             >
               <span className="flex items-center gap-1.5">
                 {tab.icon}
-                <span>{isAr ? tab.labelAr : tab.labelEn}</span>
+                <span className="truncate">{isAr ? tab.labelAr : tab.labelEn}</span>
               </span>
             </button>
           ))}
@@ -609,95 +886,94 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
           feedbackMessage.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-600' : 'bg-rose-50 text-rose-900 border-rose-600'
         }`}>
           <div className="flex items-center gap-2">
-            {feedbackMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertTriangle className="w-4 h-4 text-rose-600" />}
+            {feedbackMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-700" /> : <AlertTriangle className="w-4 h-4 text-rose-700" />}
             <span>{feedbackMessage.text}</span>
           </div>
-          <button onClick={() => setFeedbackMessage(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+          <button onClick={() => setFeedbackMessage(null)} className="text-slate-500 hover:text-slate-900 font-mono">✕</button>
         </div>
       )}
 
-      {/* Search & Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white border-geometric rounded-xs p-3">
-        <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-          <div className="relative w-full max-w-md">
+      {/* ------------------------------------------------------------- */}
+      {/* SEARCH AND KPI BAR */}
+      {/* ------------------------------------------------------------- */}
+      <div className="bg-white border-geometric rounded-xs p-3 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          <div className="relative w-full">
+            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder={isAr ? `بحث فوري داخل جدول ${entityLabel}...` : `Search inside ${entityLabel}...`}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-1.5 pr-8 border-geometric rounded-xs text-xs bg-slate-50 focus:bg-white text-slate-900"
+              placeholder={isAr ? `البحث في جدول ${entityLabel}...` : `Search ${entityLabel}...`}
+              className="w-full pl-3 pr-9 py-1.5 text-xs bg-slate-50 border-geometric rounded-xs font-bold outline-none focus:bg-white"
             />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
           </div>
           {searchQuery && (
-            <button 
+            <button
               onClick={() => setSearchQuery('')}
-              className="text-xs text-slate-500 hover:text-slate-800 font-bold"
+              className="px-2 py-1.5 text-xs bg-slate-100 border-geometric rounded-xs text-slate-600 font-mono hover:bg-slate-200"
             >
-              {isAr ? 'إلغاء الفلتر' : 'Clear'}
+              ✕
             </button>
           )}
         </div>
 
-        <div className="text-xs font-mono text-slate-600 flex items-center gap-2">
-          <span>{isAr ? 'عدد الصفوف المعروضة:' : 'Showing rows:'}</span>
-          <span className="px-2 py-0.5 bg-slate-100 border border-slate-300 rounded-xs font-bold text-slate-900">
-            {filteredRows.length} / {currentData.length}
+        <div className="flex items-center gap-3 text-xs font-mono">
+          <span className="text-slate-500">
+            {isAr ? 'عدد السجلات المعروضة:' : 'Rows:'} <strong className="text-slate-900">{filteredRows.length}</strong> / {currentData.length}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-500">
+            {isAr ? 'الأعمدة:' : 'Columns:'} <strong className="text-slate-900">{currentColumns.length}</strong>
           </span>
         </div>
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* LIVE DATA GRID TABLE */}
+      {/* DYNAMIC DATA TABLE */}
       {/* ------------------------------------------------------------- */}
       <div className="bg-white border-geometric rounded-xs shadow-xs overflow-x-auto">
-        <table className="w-full text-right text-xs border-collapse">
-          
-          {/* Table Header */}
-          <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-            <tr>
-              <th className="px-3 py-2.5 text-center w-12 border-l border-slate-200">#</th>
+        <table className="w-full border-collapse text-right text-xs">
+          <thead>
+            <tr className="bg-slate-900 text-white font-mono text-[11px] select-none">
+              <th className="p-3 w-10 text-center">#</th>
               {currentColumns.map(col => (
-                <th 
-                  key={col.key as string} 
-                  className={`px-3 py-2.5 border-l border-slate-200 whitespace-nowrap ${col.width || ''}`}
-                >
+                <th key={col.key as string} className={`p-3 font-bold border-l border-slate-700 ${col.width || ''}`}>
                   {isAr ? col.labelAr : col.labelEn}
-                  {col.required && <span className="text-rose-600 mr-1">*</span>}
+                  {col.required && <span className="text-rose-400 mr-1">*</span>}
                 </th>
               ))}
-              <th className="px-3 py-2.5 text-center w-28 whitespace-nowrap">{isAr ? 'إجراءات التحكم' : 'Actions'}</th>
+              <th className="p-3 w-24 text-center">{isAr ? 'الإجراءات' : 'Actions'}</th>
             </tr>
           </thead>
-
-          {/* Table Body */}
           <tbody className="divide-y divide-slate-200">
-
-            {/* NEW ROW INSERTION ROW (WHEN ACTIVE) */}
+            
+            {/* INLINE NEW ROW CREATION */}
             {isAddingNew && (
-              <tr className="bg-emerald-50/70 border-2 border-emerald-500">
-                <td className="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-100 border-l border-emerald-200">
-                  <Plus className="w-4 h-4 mx-auto text-emerald-700 animate-bounce" />
+              <tr className="bg-teal-50/70 border-2 border-teal-600 animate-in fade-in duration-100">
+                <td className="px-3 py-2 text-center font-mono font-bold text-teal-800 bg-teal-100 border-l border-teal-300">
+                  NEW
                 </td>
+
                 {currentColumns.map(col => {
                   const key = col.key as string;
                   const val = newRowData[key];
 
                   if (col.readOnly) {
                     return (
-                      <td key={key} className="px-3 py-2 font-mono text-[11px] text-slate-500 border-l border-emerald-200">
-                        <span className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded-xs">{val || 'AUTO'}</span>
+                      <td key={key} className="px-3 py-2 font-mono text-[11px] text-slate-500 border-l border-teal-200">
+                        <span className="px-1.5 py-0.5 bg-white border border-teal-300 rounded-xs text-teal-900 font-bold">{val}</span>
                       </td>
                     );
                   }
 
                   if (col.type === 'select' && col.options) {
                     return (
-                      <td key={key} className="px-2 py-1.5 border-l border-emerald-200">
+                      <td key={key} className="px-2 py-1.5 border-l border-teal-200">
                         <select
-                          value={val || col.options[0].value}
+                          value={val || ''}
                           onChange={e => setNewRowData(prev => ({ ...prev, [key]: e.target.value }))}
-                          className="w-full px-2 py-1 bg-white border border-emerald-400 rounded-xs text-xs font-bold text-slate-900"
+                          className="w-full px-2 py-1 bg-white border border-teal-400 rounded-xs text-xs font-bold text-slate-900"
                         >
                           {col.options.map(opt => (
                             <option key={opt.value} value={opt.value}>
@@ -711,36 +987,37 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
 
                   if (col.type === 'boolean') {
                     return (
-                      <td key={key} className="px-3 py-2 text-center border-l border-emerald-200">
+                      <td key={key} className="px-3 py-2 text-center border-l border-teal-200">
                         <input
                           type="checkbox"
-                          checked={val !== false}
+                          checked={!!val}
                           onChange={e => setNewRowData(prev => ({ ...prev, [key]: e.target.checked }))}
-                          className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                          className="w-4 h-4 accent-teal-700 cursor-pointer"
                         />
                       </td>
                     );
                   }
 
                   return (
-                    <td key={key} className="px-2 py-1.5 border-l border-emerald-200">
+                    <td key={key} className="px-2 py-1.5 border-l border-teal-200">
                       <input
                         type={col.type === 'number' ? 'number' : 'text'}
-                        value={val !== undefined ? val : ''}
-                        placeholder={isAr ? `أدخل ${col.labelAr}` : `Enter ${col.labelEn}`}
+                        value={val || ''}
                         onChange={e => setNewRowData(prev => ({ ...prev, [key]: col.type === 'number' ? Number(e.target.value) : e.target.value }))}
-                        className="w-full px-2 py-1 bg-white border border-emerald-400 rounded-xs text-xs text-slate-900 font-bold focus:outline-emerald-600"
+                        placeholder={isAr ? `أدخل ${col.labelAr}...` : `Enter ${col.labelEn}...`}
+                        className="w-full px-2 py-1 bg-white border border-teal-400 rounded-xs text-xs font-bold text-slate-900 focus:outline-teal-600"
                       />
                     </td>
                   );
                 })}
 
+                {/* Actions Column for New Row */}
                 <td className="px-2 py-2 text-center whitespace-nowrap">
                   <div className="flex items-center justify-center gap-1.5">
                     <button
                       onClick={handleSaveAdd}
-                      className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xs shadow-xs"
-                      title={isAr ? 'حفظ وإضافة' : 'Save Row'}
+                      className="p-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xs shadow-xs"
+                      title={isAr ? 'حفظ السجل الجديد' : 'Save'}
                     >
                       <Check className="w-3.5 h-3.5" />
                     </button>
@@ -878,12 +1155,14 @@ export const AdminDynamicTableEditor: React.FC<AdminDynamicTableEditorProps> = (
                           </span>
                         ) : col.key === 'status' ? (
                           <span className={`inline-flex px-2 py-0.5 text-[11px] font-bold rounded-xs ${
-                            String(val).includes('كفاءة') || String(val).includes('متوفر') || String(val).includes('نشط') ? 'bg-emerald-100 text-emerald-800' :
-                            String(val).includes('دورية') || String(val).includes('منخفض') ? 'bg-amber-100 text-amber-800' :
+                            String(val).includes('كفاءة') || String(val).includes('متوفر') || String(val).includes('نشط') || String(val) === 'Active' || String(val) === 'Completed' || String(val) === 'In Stock' ? 'bg-emerald-100 text-emerald-800' :
+                            String(val).includes('دورية') || String(val).includes('منخفض') || String(val) === 'In Progress' || String(val) === 'Action Plan Generated' ? 'bg-amber-100 text-amber-800' :
                             'bg-rose-100 text-rose-800'
                           }`}>
                             {val}
                           </span>
+                        ) : col.key === 'amount' ? (
+                          <span className="font-mono font-bold text-slate-900">{(Number(val) || 0).toLocaleString()} EGP</span>
                         ) : (
                           <span className="text-slate-800 font-medium">{val !== null && val !== undefined ? String(val) : '—'}</span>
                         )}

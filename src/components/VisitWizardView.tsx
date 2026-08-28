@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { initialLocations, initialTechnicians, initialWorkOrders } from '../data/seedData';
 import { WorkOrder, VisitRecord } from '../types';
+import { compressImage } from '../utils/imageCompression';
+import { syncQueue } from '../services/syncQueue';
 
 interface VisitWizardViewProps {
   lang: 'ar' | 'en';
@@ -97,40 +99,22 @@ export const VisitWizardView: React.FC<VisitWizardViewProps> = ({ lang, onComple
   };
 
   // Client-side image resize via HTML5 Canvas (Max 1024px)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isBefore: boolean) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isBefore: boolean) => {
     if (!e.target.files || !e.target.files[0]) return;
     const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = event => {
-      const img = new Image();
-      img.onload = () => {
-        const maxDim = 1024;
-        let w = img.width;
-        let h = img.height;
-        if (w > maxDim || h > maxDim) {
-          if (w > h) {
-            h = Math.round((h * maxDim) / w);
-            w = maxDim;
-          } else {
-            w = Math.round((w * maxDim) / h);
-            h = maxDim;
-          }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, w, h);
-          const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          if (isBefore) setBeforePhoto(resizedDataUrl);
-          else setAfterPhoto(resizedDataUrl);
-        }
+    try {
+      const resized = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.82 });
+      if (isBefore) setBeforePhoto(resized);
+      else setAfterPhoto(resized);
+    } catch (err) {
+      console.warn('Image upload fallback', err);
+      const reader = new FileReader();
+      reader.onload = event => {
+        if (isBefore) setBeforePhoto(event.target?.result as string);
+        else setAfterPhoto(event.target?.result as string);
       };
-      if (event.target?.result) img.src = event.target.result as string;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    }
   };
 
   // Step titles
@@ -162,11 +146,35 @@ export const VisitWizardView: React.FC<VisitWizardViewProps> = ({ lang, onComple
   // Submit visit report
   const handleSubmitVisit = () => {
     setIsSubmitting(true);
+    const visitId = `VISIT-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+    const visitPayload: Partial<VisitRecord> = {
+      visit_id: visitId,
+      wo_id: effectiveWoId,
+      tech_name: selectedTech || 'فني الصيانة الميدانية',
+      arrived_at: arrivedAt || now,
+      departed_at: now,
+      arrive_lat: arriveLat === '' ? 30.0444 : arriveLat,
+      arrive_lng: arriveLng === '' ? 31.2357 : arriveLng,
+      work_done: workDone || 'تم إنجاز أعمال الصيانة والمعايرة التشغيلية.',
+      parts_used: partsUsed,
+      cost_parts: costParts,
+      cost_labor: costLabor,
+      notes: notes,
+      before_photo: beforePhoto,
+      after_photo: afterPhoto,
+      video_url: videoUrl
+    };
+
+    // Queue for sync or send
+    syncQueue.enqueue('CREATE_VISIT', visitPayload);
+
     setTimeout(() => {
       setIsSubmitting(false);
       setSubmitSuccess(true);
-      setGeneratedVisitId(`VISIT-2026-${Math.floor(100000 + Math.random() * 900000)}`);
-    }, 1200);
+      setGeneratedVisitId(visitId);
+    }, 800);
   };
 
   return (
